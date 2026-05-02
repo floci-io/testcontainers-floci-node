@@ -1,0 +1,39 @@
+{
+  "name": "@floci/testcontainers",
+  "version": "0.1.0",
+  "description": "Testcontainers module for Floci — the open-source local AWS emulator",
+  "keywords": ["testcontainers", "floci", "aws", "localstack", "testing"],
+  "license": "MIT",
+  "homepage": "https://github.com/floci-io/testcontainers-floci-node",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/floci-io/testcontainers-floci-node.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern='tests/unit'",
+    "test:integration": "jest --testPathPattern='tests/integration'",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests"
+  },
+  "dependencies": {
+    "testcontainers": "^10.0.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/client-sqs": "^3.0.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
