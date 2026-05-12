@@ -25,8 +25,10 @@ describe('S3 (integration)', () => {
   });
 
   afterAll(async () => {
+  if (floci) {
     await floci.stop();
-  });
+  }
+});
 
   it('creates and lists a bucket', async () => {
     const bucketName = `test-bucket-${Date.now()}`;

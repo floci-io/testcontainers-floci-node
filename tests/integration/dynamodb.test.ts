@@ -23,10 +23,11 @@ describe('DynamoDB (integration)', () => {
     });
   });
 
-  afterAll(async () => {
+afterAll(async () => {
+  if (floci) {
     await floci.stop();
-  });
-
+  }
+});
   it('creates an ACTIVE table', async () => {
     const tableName = `users-${Date.now()}`;
     await ddb.send(
