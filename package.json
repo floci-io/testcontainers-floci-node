@@ -16,7 +16,7 @@
     "build": "tsc",
     "test": "jest",
     "test:unit": "jest --testPathPattern='tests/unit'",
-    "test:integration": "jest --testPathPattern='tests/integration'",
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern='tests/integration'",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests"
   },
