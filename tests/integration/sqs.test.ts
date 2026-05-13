@@ -22,9 +22,11 @@ describe('SQS (integration)', () => {
     });
   });
 
-  afterAll(async () => {
+afterAll(async () => {
+  if (floci) {
     await floci.stop();
-  });
+  }
+});
 
   it('sends and receives a message', async () => {
     const { QueueUrl } = await sqs.send(
