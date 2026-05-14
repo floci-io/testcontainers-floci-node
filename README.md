@@ -60,7 +60,12 @@ describe('S3', () => {
   });
 });
 ```
+## Jest note
 
+Integration tests that use AWS SDK v3 may need Node VM modules enabled when running under Jest:
+
+```sh
+NODE_OPTIONS=--experimental-vm-modules npm test
 ## Sharing a container across tests
 
 ```ts
