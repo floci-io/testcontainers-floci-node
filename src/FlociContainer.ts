@@ -71,7 +71,7 @@ export class FlociContainer {
   static readonly DEFAULT_ACCOUNT_ID = '000000000000';
   static readonly DEFAULT_ACCESS_KEY = 'test';
   static readonly DEFAULT_SECRET_KEY = 'test';
-  static readonly STARTUP_TIMEOUT_MS = 30_000;
+  static readonly STARTUP_TIMEOUT_MS = 120_000;
 
   private readonly image: string;
   private readonly envVars: Record<string, string> = {};
