@@ -171,6 +171,36 @@ const floci = await new FlociContainer()
   .withMskConfig(new MskConfig(true, false, 'redpandadata/redpanda:latest'))
   .start();
 ```
+## AWS SDK v3 Example (S3)
+
+```ts
+import { FlociContainer } from "@floci/testcontainers";
+import { S3Client, CreateBucketCommand, ListBucketsCommand } from "@aws-sdk/client-s3";
+
+const floci = await new FlociContainer().start();
+
+const client = new S3Client({
+  region: "us-east-1",
+  endpoint: floci.getEndpoint(),
+  credentials: {
+    accessKeyId: "test",
+    secretAccessKey: "test",
+  },
+  forcePathStyle: true,
+});
+
+await client.send(
+  new CreateBucketCommand({
+    Bucket: "example-bucket",
+  }),
+);
+
+const buckets = await client.send(new ListBucketsCommand({}));
+
+console.log(buckets.Buckets);
+
+await floci.stop();
+```
 
 ### All available config classes
 
