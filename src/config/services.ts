@@ -179,7 +179,11 @@ export class Ec2Config implements ServiceConfig {
     c.withEnv('FLOCI_SERVICES_EC2_IMDS_PORT', String(this.imdsPort));
   }
 
-  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+  applyExposedPortsTo(c: FlociContainerTarget): void {
+    if (this.enabled) {
+      c.withExposedPort(this.imdsPort);
+    }
+  }
 }
 
 export class EcrConfig implements ServiceConfig {
@@ -267,14 +271,23 @@ export class ElbV2Config implements ServiceConfig {
   constructor(
     readonly enabled: boolean = true,
     readonly mock: boolean = false,
+    readonly listenerPorts: number[] = [],
   ) {}
 
   applyEnvVarsTo(c: FlociContainerTarget): void {
     c.withEnv('FLOCI_SERVICES_ELBV2_ENABLED', String(this.enabled));
-    c.withEnv('FLOCI_SERVICES_ELBV2_MOCK', String(this.mock));
+    if (this.enabled) {
+      c.withEnv('FLOCI_SERVICES_ELBV2_MOCK', String(this.mock));
+    }
   }
 
-  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+  applyExposedPortsTo(c: FlociContainerTarget): void {
+    if (this.enabled) {
+      for (const port of this.listenerPorts) {
+        c.withExposedPort(port);
+      }
+    }
+  }
 }
 
 export class EventBridgeConfig implements ServiceConfig {
@@ -562,6 +575,186 @@ export class StepFunctionsConfig implements ServiceConfig {
 
   applyEnvVarsTo(c: FlociContainerTarget): void {
     c.withEnv('FLOCI_SERVICES_STEPFUNCTIONS_ENABLED', String(this.enabled));
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class CostExplorerConfig implements ServiceConfig {
+  constructor(
+    readonly enabled: boolean = true,
+    readonly creditUsdMonthly: number = 0.0,
+  ) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_CE_ENABLED', String(this.enabled));
+    if (this.enabled) {
+      c.withEnv('FLOCI_SERVICES_CE_CREDIT_USD_MONTHLY', String(this.creditUsdMonthly));
+    }
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class CurConfig implements ServiceConfig {
+  constructor(
+    readonly enabled: boolean = true,
+    readonly emitMode: string = 'synchronous',
+    readonly stagingBucket: string = 'floci-cur-staging',
+  ) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_CUR_ENABLED', String(this.enabled));
+    if (this.enabled) {
+      c.withEnv('FLOCI_SERVICES_CUR_EMIT_MODE', this.emitMode);
+      c.withEnv('FLOCI_SERVICES_CUR_STAGING_BUCKET', this.stagingBucket);
+    }
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class BcmDataExportsConfig implements ServiceConfig {
+  constructor(
+    readonly enabled: boolean = true,
+    readonly emitMode: string = 'synchronous',
+  ) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_BCM_DATA_EXPORTS_ENABLED', String(this.enabled));
+    if (this.enabled) {
+      c.withEnv('FLOCI_SERVICES_BCM_DATA_EXPORTS_EMIT_MODE', this.emitMode);
+    }
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class NeptuneConfig implements ServiceConfig {
+  constructor(
+    readonly enabled: boolean = true,
+    readonly proxyBasePort: number = 8182,
+    readonly proxyPortCount: number = 101,
+    readonly defaultImage: string = 'tinkerpop/gremlin-server:3.7.3',
+    readonly dockerNetwork?: string,
+  ) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_NEPTUNE_ENABLED', String(this.enabled));
+    if (this.enabled) {
+      c.withEnv('FLOCI_SERVICES_NEPTUNE_PROXY_BASE_PORT', String(this.proxyBasePort));
+      c.withEnv('FLOCI_SERVICES_NEPTUNE_PROXY_MAX_PORT', String(this.proxyBasePort + this.proxyPortCount - 1));
+      c.withEnv('FLOCI_SERVICES_NEPTUNE_DEFAULT_IMAGE', this.defaultImage);
+      if (this.dockerNetwork) {
+        c.withEnv('FLOCI_SERVICES_NEPTUNE_DOCKER_NETWORK', this.dockerNetwork);
+      }
+    }
+  }
+
+  applyExposedPortsTo(c: FlociContainerTarget): void {
+    if (this.enabled) {
+      for (const port of range(this.proxyBasePort, this.proxyPortCount)) {
+        c.withExposedPort(port);
+      }
+    }
+  }
+}
+
+export class Route53Config implements ServiceConfig {
+  constructor(
+    readonly enabled: boolean = true,
+    readonly defaultNameserver1: string = 'ns-1.awsdns-01.org',
+    readonly defaultNameserver2: string = 'ns-2.awsdns-02.net',
+    readonly defaultNameserver3: string = 'ns-3.awsdns-03.com',
+    readonly defaultNameserver4: string = 'ns-4.awsdns-04.co.uk',
+  ) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_ROUTE53_ENABLED', String(this.enabled));
+    if (this.enabled) {
+      c.withEnv('FLOCI_SERVICES_ROUTE53_DEFAULT_NAMESERVER_1', this.defaultNameserver1);
+      c.withEnv('FLOCI_SERVICES_ROUTE53_DEFAULT_NAMESERVER_2', this.defaultNameserver2);
+      c.withEnv('FLOCI_SERVICES_ROUTE53_DEFAULT_NAMESERVER_3', this.defaultNameserver3);
+      c.withEnv('FLOCI_SERVICES_ROUTE53_DEFAULT_NAMESERVER_4', this.defaultNameserver4);
+    }
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class TextractConfig implements ServiceConfig {
+  constructor(readonly enabled: boolean = true) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_TEXTRACT_ENABLED', String(this.enabled));
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class PricingConfig implements ServiceConfig {
+  constructor(
+    readonly enabled: boolean = true,
+    readonly snapshotPath?: string,
+  ) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_PRICING_ENABLED', String(this.enabled));
+    if (this.snapshotPath) {
+      c.withEnv('FLOCI_SERVICES_PRICING_SNAPSHOT_PATH', this.snapshotPath);
+    }
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class CloudFrontConfig implements ServiceConfig {
+  constructor(
+    readonly enabled: boolean = true,
+    readonly domainSuffix: string = 'cloudfront.net',
+  ) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_CLOUDFRONT_ENABLED', String(this.enabled));
+    if (this.enabled) {
+      c.withEnv('FLOCI_SERVICES_CLOUDFRONT_DOMAIN_SUFFIX', this.domainSuffix);
+    }
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class ConfigServiceConfig implements ServiceConfig {
+  constructor(readonly enabled: boolean = true) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_CONFIGSERVICE_ENABLED', String(this.enabled));
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class BackupConfig implements ServiceConfig {
+  constructor(
+    readonly enabled: boolean = true,
+    readonly jobCompletionDelaySeconds: number = 3,
+  ) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_BACKUP_ENABLED', String(this.enabled));
+    if (this.enabled) {
+      c.withEnv('FLOCI_SERVICES_BACKUP_JOB_COMPLETION_DELAY_SECONDS', String(this.jobCompletionDelaySeconds));
+    }
+  }
+
+  applyExposedPortsTo(_c: FlociContainerTarget): void {}
+}
+
+export class TransferFamilyConfig implements ServiceConfig {
+  constructor(readonly enabled: boolean = true) {}
+
+  applyEnvVarsTo(c: FlociContainerTarget): void {
+    c.withEnv('FLOCI_SERVICES_TRANSFER_ENABLED', String(this.enabled));
   }
 
   applyExposedPortsTo(_c: FlociContainerTarget): void {}

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
+import fs from 'fs';
 import { GenericContainer, Network, StartedTestContainer, Wait } from 'testcontainers';
-import type { StartedNetwork } from 'testcontainers';
+import type { StartedNetwork, ExecResult } from 'testcontainers';
 import type { ServiceConfig } from './config/services';
 import {
   AcmConfig,
@@ -9,13 +10,19 @@ import {
   AppConfigConfig,
   AppConfigDataConfig,
   AthenaConfig,
+  BackupConfig,
+  BcmDataExportsConfig,
   BedrockRuntimeConfig,
   CloudFormationConfig,
+  CloudFrontConfig,
   CloudWatchLogsConfig,
   CloudWatchMetricsConfig,
   CodeBuildConfig,
   CodeDeployConfig,
   CognitoConfig,
+  ConfigServiceConfig,
+  CostExplorerConfig,
+  CurConfig,
   DynamoDbConfig,
   Ec2Config,
   EcrConfig,
@@ -31,10 +38,13 @@ import {
   KmsConfig,
   LambdaConfig,
   MskConfig,
+  NeptuneConfig,
   OpenSearchConfig,
   PipesConfig,
+  PricingConfig,
   RdsConfig,
   ResourceGroupsTaggingConfig,
+  Route53Config,
   S3Config,
   SchedulerConfig,
   SecretsManagerConfig,
@@ -44,10 +54,20 @@ import {
   SqsConfig,
   SsmConfig,
   StepFunctionsConfig,
+  TextractConfig,
+  TransferFamilyConfig,
 } from './config/services';
+import { TlsConfig } from './config/TlsConfig';
+import { StorageConfig } from './config/StorageConfig';
+import { DuckDbConfig } from './config/DuckDbConfig';
 
 const DEFAULT_IMAGE = 'floci/floci:latest';
 const DOCKER_SOCKET = '/var/run/docker.sock';
+
+/**
+ * Valid log levels for the Floci container.
+ */
+export type LogLevel = 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 
 /**
  * Testcontainers module for Floci — a free, open-source local AWS emulator.
@@ -77,6 +97,7 @@ export class FlociContainer {
   private readonly envVars: Record<string, string> = {};
   private readonly exposedPorts: Set<number> = new Set([FlociContainer.PORT]);
   private dedicatedNetworkName?: string;
+  private logLevel: LogLevel = 'WARN';
 
   private acmConfig = new AcmConfig();
   private apiGatewayConfig = new ApiGatewayConfig();
@@ -119,12 +140,27 @@ export class FlociContainer {
   private sqsConfig = new SqsConfig();
   private ssmConfig = new SsmConfig();
   private stepFunctionsConfig = new StepFunctionsConfig();
+  private cloudFrontConfig = new CloudFrontConfig();
+  private configServiceConfig = new ConfigServiceConfig();
+  private backupConfig = new BackupConfig();
+  private transferFamilyConfig = new TransferFamilyConfig();
+  private route53Config = new Route53Config();
+  private textractConfig = new TextractConfig();
+  private pricingConfig = new PricingConfig();
+  private neptuneConfig = new NeptuneConfig();
+  private costExplorerConfig = new CostExplorerConfig();
+  private curConfig = new CurConfig();
+  private bcmDataExportsConfig = new BcmDataExportsConfig();
+  private tlsConfig = new TlsConfig();
+  private storageConfig?: StorageConfig;
+  private duckDbConfig = new DuckDbConfig();
 
   constructor(image = DEFAULT_IMAGE) {
     this.image = image;
     this.withEnv('FLOCI_DEFAULT_REGION', FlociContainer.DEFAULT_REGION);
     this.withEnv('FLOCI_DEFAULT_ACCOUNT_ID', FlociContainer.DEFAULT_ACCOUNT_ID);
     this.withEnv('FLOCI_DEFAULT_AVAILABILITY_ZONE', FlociContainer.DEFAULT_AVAILABILITY_ZONE);
+    this.withEnv('QUARKUS_LOG_CATEGORY__IO_GITHUB_HECTORVENT__LEVEL', this.logLevel);
     this.applyAllConfigs();
   }
 
@@ -154,6 +190,20 @@ export class FlociContainer {
     const name = `floci-network-${crypto.randomBytes(4).toString('hex')}`;
     this.dedicatedNetworkName = name;
     return this.withEnv('FLOCI_SERVICES_DOCKER_NETWORK', name);
+  }
+
+  withLogLevel(level: LogLevel): this {
+    const valid: LogLevel[] = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
+    if (!valid.includes(level)) {
+      throw new Error(`Invalid log level "${level}". Must be one of: ${valid.join(', ')}`);
+    }
+    this.logLevel = level;
+    this.withEnv('QUARKUS_LOG_CATEGORY__IO_GITHUB_HECTORVENT__LEVEL', level);
+    return this;
+  }
+
+  getLogLevel(): LogLevel {
+    return this.logLevel;
   }
 
   withAcmConfig(config: AcmConfig): this {
@@ -490,6 +540,119 @@ export class FlociContainer {
 
   getStepFunctionsConfig(): StepFunctionsConfig { return this.stepFunctionsConfig; }
 
+  withCloudFrontConfig(config: CloudFrontConfig): this {
+    this.cloudFrontConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getCloudFrontConfig(): CloudFrontConfig { return this.cloudFrontConfig; }
+
+  withConfigServiceConfig(config: ConfigServiceConfig): this {
+    this.configServiceConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getConfigServiceConfig(): ConfigServiceConfig { return this.configServiceConfig; }
+
+  withBackupConfig(config: BackupConfig): this {
+    this.backupConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getBackupConfig(): BackupConfig { return this.backupConfig; }
+
+  withTransferFamilyConfig(config: TransferFamilyConfig): this {
+    this.transferFamilyConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getTransferFamilyConfig(): TransferFamilyConfig { return this.transferFamilyConfig; }
+
+  withRoute53Config(config: Route53Config): this {
+    this.route53Config = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getRoute53Config(): Route53Config { return this.route53Config; }
+
+  withTextractConfig(config: TextractConfig): this {
+    this.textractConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getTextractConfig(): TextractConfig { return this.textractConfig; }
+
+  withPricingConfig(config: PricingConfig): this {
+    this.pricingConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getPricingConfig(): PricingConfig { return this.pricingConfig; }
+
+  withNeptuneConfig(config: NeptuneConfig): this {
+    this.neptuneConfig = config;
+    this.refreshExposedPorts();
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getNeptuneConfig(): NeptuneConfig { return this.neptuneConfig; }
+
+  withCostExplorerConfig(config: CostExplorerConfig): this {
+    this.costExplorerConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getCostExplorerConfig(): CostExplorerConfig { return this.costExplorerConfig; }
+
+  withCurConfig(config: CurConfig): this {
+    this.curConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getCurConfig(): CurConfig { return this.curConfig; }
+
+  withBcmDataExportsConfig(config: BcmDataExportsConfig): this {
+    this.bcmDataExportsConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getBcmDataExportsConfig(): BcmDataExportsConfig { return this.bcmDataExportsConfig; }
+
+  withTlsConfig(config: TlsConfig): this {
+    this.tlsConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getTlsConfig(): TlsConfig { return this.tlsConfig; }
+
+  withStorageConfig(config: StorageConfig): this {
+    this.storageConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getStorageConfig(): StorageConfig | undefined { return this.storageConfig; }
+
+  withDuckDbConfig(config: DuckDbConfig): this {
+    this.duckDbConfig = config;
+    config.applyEnvVarsTo(this);
+    return this;
+  }
+
+  getDuckDbConfig(): DuckDbConfig { return this.duckDbConfig; }
+
   getDedicatedNetworkName(): string | undefined {
     return this.dedicatedNetworkName;
   }
@@ -501,10 +664,18 @@ export class FlociContainer {
       network = await new Network({ nextUuid: () => networkName }).start();
     }
 
+    const bindMounts: Array<{ source: string; target: string; mode: 'rw' }> = [
+      { source: DOCKER_SOCKET, target: DOCKER_SOCKET, mode: 'rw' },
+    ];
+
+    if (this.storageConfig?.hostPersistentPath) {
+      bindMounts.push({ source: this.storageConfig.hostPersistentPath, target: '/app/data', mode: 'rw' });
+    }
+
     let container = new GenericContainer(this.image)
       .withExposedPorts(...Array.from(this.exposedPorts))
       .withEnvironment(this.envVars)
-      .withBindMounts([{ source: DOCKER_SOCKET, target: DOCKER_SOCKET, mode: 'rw' }])
+      .withBindMounts(bindMounts)
       .withWaitStrategy(
         Wait.forHttp('/_floci/health', FlociContainer.PORT)
           .forStatusCode(200)
@@ -522,6 +693,8 @@ export class FlociContainer {
       accountId: this.envVars['FLOCI_DEFAULT_ACCOUNT_ID'] ?? FlociContainer.DEFAULT_ACCOUNT_ID,
       dedicatedNetworkName: this.dedicatedNetworkName,
       network,
+      tlsEnabled: this.tlsConfig.enabled,
+      hostPersistentPath: this.storageConfig?.hostPersistentPath,
     });
   }
 
@@ -539,9 +712,16 @@ export class FlociContainer {
       this.resourceGroupsTaggingConfig, this.s3Config, this.schedulerConfig,
       this.secretsManagerConfig, this.sesConfig, this.sesV2Config, this.snsConfig,
       this.sqsConfig, this.ssmConfig, this.stepFunctionsConfig,
+      this.cloudFrontConfig, this.configServiceConfig, this.backupConfig,
+      this.transferFamilyConfig, this.route53Config, this.textractConfig,
+      this.pricingConfig, this.neptuneConfig, this.costExplorerConfig,
+      this.curConfig, this.bcmDataExportsConfig, this.tlsConfig, this.duckDbConfig,
     ];
     for (const config of configs) {
       config.applyEnvVarsTo(this);
+    }
+    if (this.storageConfig) {
+      this.storageConfig.applyEnvVarsTo(this);
     }
     this.refreshExposedPorts();
   }
@@ -550,6 +730,7 @@ export class FlociContainer {
     const portConfigs: ServiceConfig[] = [
       this.lambdaConfig, this.rdsConfig, this.elastiCacheConfig,
       this.openSearchConfig, this.ecrConfig, this.eksConfig,
+      this.neptuneConfig, this.ec2Config, this.elbV2Config,
     ];
     for (const config of portConfigs) {
       config.applyExposedPortsTo(this);
@@ -564,6 +745,8 @@ export class StartedFlociContainer {
   private readonly accountId: string;
   private readonly _dedicatedNetworkName?: string;
   private readonly network?: StartedNetwork;
+  private readonly tlsEnabled: boolean;
+  private readonly hostPersistentPath?: string;
 
   constructor(
     container: StartedTestContainer,
@@ -573,6 +756,8 @@ export class StartedFlociContainer {
       accountId: string;
       dedicatedNetworkName?: string;
       network?: StartedNetwork;
+      tlsEnabled: boolean;
+      hostPersistentPath?: string;
     },
   ) {
     this.container = container;
@@ -581,10 +766,19 @@ export class StartedFlociContainer {
     this.accountId = opts.accountId;
     this._dedicatedNetworkName = opts.dedicatedNetworkName;
     this.network = opts.network;
+    this.tlsEnabled = opts.tlsEnabled;
+    this.hostPersistentPath = opts.hostPersistentPath;
   }
 
   getEndpoint(): string {
     return `http://${this.container.getHost()}:${this.container.getMappedPort(FlociContainer.PORT)}`;
+  }
+
+  getSecureEndpoint(): string {
+    if (!this.tlsEnabled) {
+      throw new Error('TLS is not enabled on this container. Use withTlsConfig(new TlsConfig(true)) before starting.');
+    }
+    return `https://${this.container.getHost()}:${this.container.getMappedPort(FlociContainer.PORT)}`;
   }
 
   getRegion(): string { return this.region; }
@@ -598,10 +792,22 @@ export class StartedFlociContainer {
     return this.container.getMappedPort(port);
   }
 
+  async exec(command: string[]): Promise<ExecResult> {
+    return this.container.exec(command);
+  }
+
   async stop(): Promise<void> {
     await this.container.stop();
     if (this.network) {
       await this.network.stop();
+    }
+    // Cleanup persistent storage if a host path was configured
+    if (this.hostPersistentPath) {
+      try {
+        fs.rmSync(this.hostPersistentPath, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors silently (matches Java behavior)
+      }
     }
   }
 }

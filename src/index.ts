@@ -1,4 +1,5 @@
 export { FlociContainer, StartedFlociContainer } from './FlociContainer';
+export type { LogLevel } from './FlociContainer';
 export type { ServiceConfig, FlociContainerTarget } from './config';
 export {
   AcmConfig,
@@ -42,4 +43,18 @@ export {
   SqsConfig,
   SsmConfig,
   StepFunctionsConfig,
+  CloudFrontConfig,
+  ConfigServiceConfig,
+  BackupConfig,
+  TransferFamilyConfig,
+  Route53Config,
+  TextractConfig,
+  PricingConfig,
+  NeptuneConfig,
+  CostExplorerConfig,
+  CurConfig,
+  BcmDataExportsConfig,
+  TlsConfig,
+  StorageConfig,
+  DuckDbConfig,
 } from './config';

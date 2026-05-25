@@ -41,4 +41,18 @@ export {
   SqsConfig,
   SsmConfig,
   StepFunctionsConfig,
+  CloudFrontConfig,
+  ConfigServiceConfig,
+  BackupConfig,
+  TransferFamilyConfig,
+  Route53Config,
+  TextractConfig,
+  PricingConfig,
+  NeptuneConfig,
+  CostExplorerConfig,
+  CurConfig,
+  BcmDataExportsConfig,
 } from './services';
+export { TlsConfig } from './TlsConfig';
+export { StorageConfig } from './StorageConfig';
+export { DuckDbConfig } from './DuckDbConfig';

@@ -202,6 +202,55 @@ console.log(buckets.Buckets);
 await floci.stop();
 ```
 
+### TLS Configuration
+
+```ts
+import { FlociContainer, TlsConfig } from '@floci/testcontainers';
+
+const floci = await new FlociContainer()
+  .withTlsConfig(new TlsConfig(true, true))
+  .start();
+
+const endpoint = floci.getSecureEndpoint(); // https://host:port
+await floci.stop();
+```
+
+### Storage Configuration
+
+```ts
+import { FlociContainer, StorageConfig } from '@floci/testcontainers';
+
+const floci = await new FlociContainer()
+  .withStorageConfig(new StorageConfig('/tmp/floci-data', true))
+  .start();
+
+await floci.stop();
+```
+
+### DuckDB Configuration
+
+```ts
+import { FlociContainer, DuckDbConfig } from '@floci/testcontainers';
+
+const floci = await new FlociContainer()
+  .withDuckDbConfig(new DuckDbConfig('floci/floci-duck:latest'))
+  .start();
+
+await floci.stop();
+```
+
+### Log Level
+
+```ts
+import { FlociContainer } from '@floci/testcontainers';
+
+const floci = await new FlociContainer()
+  .withLogLevel('DEBUG')
+  .start();
+
+await floci.stop();
+```
+
 ### All available config classes
 
 | Config class | AWS service |
@@ -212,13 +261,19 @@ await floci.stop();
 | `AppConfigConfig` | AppConfig |
 | `AppConfigDataConfig` | AppConfig Data |
 | `AthenaConfig` | Athena |
+| `BackupConfig` | AWS Backup |
+| `BcmDataExportsConfig` | BCM Data Exports |
 | `BedrockRuntimeConfig` | Bedrock Runtime |
 | `CloudFormationConfig` | CloudFormation |
+| `CloudFrontConfig` | CloudFront |
 | `CloudWatchLogsConfig` | CloudWatch Logs |
 | `CloudWatchMetricsConfig` | CloudWatch Metrics |
 | `CodeBuildConfig` | CodeBuild |
 | `CodeDeployConfig` | CodeDeploy |
 | `CognitoConfig` | Cognito |
+| `ConfigServiceConfig` | AWS Config |
+| `CostExplorerConfig` | Cost Explorer |
+| `CurConfig` | Cost and Usage Reports |
 | `DynamoDbConfig` | DynamoDB |
 | `Ec2Config` | EC2 |
 | `EcrConfig` | ECR |
@@ -234,10 +289,13 @@ await floci.stop();
 | `KmsConfig` | KMS |
 | `LambdaConfig` | Lambda |
 | `MskConfig` | MSK (Kafka) |
+| `NeptuneConfig` | Neptune |
 | `OpenSearchConfig` | OpenSearch |
 | `PipesConfig` | EventBridge Pipes |
+| `PricingConfig` | AWS Pricing |
 | `RdsConfig` | RDS |
 | `ResourceGroupsTaggingConfig` | Resource Groups Tagging |
+| `Route53Config` | Route 53 |
 | `S3Config` | S3 |
 | `SchedulerConfig` | EventBridge Scheduler |
 | `SecretsManagerConfig` | Secrets Manager |
@@ -247,6 +305,8 @@ await floci.stop();
 | `SqsConfig` | SQS |
 | `SsmConfig` | SSM Parameter Store |
 | `StepFunctionsConfig` | Step Functions |
+| `TextractConfig` | Textract |
+| `TransferFamilyConfig` | Transfer Family |
 
 ## Container options
 
@@ -276,6 +336,42 @@ const floci = await new FlociContainer('floci/floci:latest')  // pin a specific 
 |---|---|
 | `floci/floci:latest` | Native image — sub-second startup (recommended) |
 | `floci/floci:x.y.z` | Pinned release (native) |
+
+## Troubleshooting
+
+### Docker not running
+
+**Symptom:** `Cannot connect to the Docker daemon` or container fails to start.
+
+**Cause:** The Docker daemon is not running or the current user lacks permissions.
+
+**Resolution:**
+1. Start Docker Desktop or the Docker daemon (`sudo systemctl start docker`)
+2. Verify with `docker info`
+3. Ensure your user is in the `docker` group (`sudo usermod -aG docker $USER`)
+
+### Port conflicts
+
+**Symptom:** `Bind for 0.0.0.0:<port> failed: port is already allocated`
+
+**Cause:** Another process or container is using the same port.
+
+**Resolution:**
+1. Identify the conflicting process: `lsof -i :<port>` or `docker ps`
+2. Stop the conflicting process or container
+3. Alternatively, let Testcontainers use random port mapping (the default behavior)
+
+### Timeout errors
+
+**Symptom:** `Timeout waiting for container to be ready` or test timeout exceeded.
+
+**Cause:** The Floci container takes longer to start than the configured timeout.
+
+**Resolution:**
+1. Increase the Jest test timeout: `jest.setTimeout(120_000)`
+2. Ensure Docker has sufficient resources (CPU/memory)
+3. Check container logs for startup errors: `docker logs <container-id>`
+4. Use `withLogLevel('DEBUG')` to get more verbose container output
 
 ## Requirements
 
