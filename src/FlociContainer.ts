@@ -98,6 +98,7 @@ export class FlociContainer {
   private readonly exposedPorts: Set<number> = new Set([FlociContainer.PORT]);
   private dedicatedNetworkName?: string;
   private logLevel: LogLevel = 'WARN';
+  private dockerSocketPath?: string = DOCKER_SOCKET;
 
   private acmConfig = new AcmConfig();
   private apiGatewayConfig = new ApiGatewayConfig();
@@ -171,6 +172,19 @@ export class FlociContainer {
 
   withExposedPort(port: number): this {
     this.exposedPorts.add(port);
+    return this;
+  }
+
+  withDockerSocket(path = DOCKER_SOCKET): this {
+    if (!path.trim()) {
+      throw new Error('Docker socket path must not be empty');
+    }
+    this.dockerSocketPath = path;
+    return this;
+  }
+
+  withoutDockerSocket(): this {
+    this.dockerSocketPath = undefined;
     return this;
   }
 
@@ -664,9 +678,11 @@ export class FlociContainer {
       network = await new Network({ nextUuid: () => networkName }).start();
     }
 
-    const bindMounts: Array<{ source: string; target: string; mode: 'rw' }> = [
-      { source: DOCKER_SOCKET, target: DOCKER_SOCKET, mode: 'rw' },
-    ];
+    const bindMounts: Array<{ source: string; target: string; mode: 'rw' }> = [];
+
+    if (this.dockerSocketPath) {
+      bindMounts.push({ source: this.dockerSocketPath, target: DOCKER_SOCKET, mode: 'rw' });
+    }
 
     if (this.storageConfig?.hostPersistentPath) {
       bindMounts.push({ source: this.storageConfig.hostPersistentPath, target: '/app/data', mode: 'rw' });
