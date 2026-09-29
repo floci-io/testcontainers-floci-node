@@ -129,7 +129,8 @@ Integration tests require `NODE_OPTIONS=--experimental-vm-modules` (already conf
 3. Export it from `src/index.ts`
 4. Add `withXConfig()` and `getXConfig()` methods to `FlociContainer`
 5. Add the config to `applyAllConfigs()` in `FlociContainer`
-6. If the service uses extra ports, add it to `refreshExposedPorts()`
+6. If the service uses extra ports, call `updatePortConfig('<service>', config)` from its `withXConfig()` method
+   and guard `applyExposedPortsTo()` when the service is disabled. Only explicitly supplied service configs publish extra ports.
 7. Add unit tests for the config wiring
 8. Add an integration test using the corresponding AWS SDK client
 
@@ -215,7 +216,8 @@ Do not add `Co-Authored-By` trailers for AI tools in commit messages.
 - Adding runtime dependencies that bloat the package
 - Testing only with raw HTTP instead of AWS SDK clients
 - Forgetting to add the config to `applyAllConfigs()`
-- Not handling port exposure for services that need extra ports (Lambda, RDS, ElastiCache, OpenSearch, ECR, EKS)
+- Not registering explicit configs with `updatePortConfig()` for services that need extra ports
+  (Lambda, RDS, ElastiCache, OpenSearch, ECR, EKS)
 
 ---
 
