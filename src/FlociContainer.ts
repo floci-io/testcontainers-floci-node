@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import { GenericContainer, Network, StartedTestContainer, Wait } from 'testcontainers';
 import type { StartedNetwork, ExecResult } from 'testcontainers';
-import type { ServiceConfig } from './config/services';
+import type { FlociContainerTarget, ServiceConfig } from './config/services';
 import {
   AcmConfig,
   ApiGatewayConfig,
@@ -96,6 +96,8 @@ export class FlociContainer {
   private readonly image: string;
   private readonly envVars: Record<string, string> = {};
   private readonly exposedPorts: Set<number> = new Set([FlociContainer.PORT]);
+  private readonly manualExposedPorts: Set<number> = new Set();
+  private readonly configuredPortServices: Map<string, ServiceConfig> = new Map();
   private dedicatedNetworkName?: string;
   private logLevel: LogLevel = 'WARN';
 
@@ -170,6 +172,7 @@ export class FlociContainer {
   }
 
   withExposedPort(port: number): this {
+    this.manualExposedPorts.add(port);
     this.exposedPorts.add(port);
     return this;
   }
@@ -320,6 +323,7 @@ export class FlociContainer {
 
   withEc2Config(config: Ec2Config): this {
     this.ec2Config = config;
+    this.updatePortConfig('ec2', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -328,7 +332,7 @@ export class FlociContainer {
 
   withEcrConfig(config: EcrConfig): this {
     this.ecrConfig = config;
-    this.refreshExposedPorts();
+    this.updatePortConfig('ecr', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -345,7 +349,7 @@ export class FlociContainer {
 
   withEksConfig(config: EksConfig): this {
     this.eksConfig = config;
-    this.refreshExposedPorts();
+    this.updatePortConfig('eks', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -354,7 +358,7 @@ export class FlociContainer {
 
   withElastiCacheConfig(config: ElastiCacheConfig): this {
     this.elastiCacheConfig = config;
-    this.refreshExposedPorts();
+    this.updatePortConfig('elasticache', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -363,6 +367,7 @@ export class FlociContainer {
 
   withElbV2Config(config: ElbV2Config): this {
     this.elbV2Config = config;
+    this.updatePortConfig('elbv2', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -419,7 +424,7 @@ export class FlociContainer {
 
   withLambdaConfig(config: LambdaConfig): this {
     this.lambdaConfig = config;
-    this.refreshExposedPorts();
+    this.updatePortConfig('lambda', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -436,7 +441,7 @@ export class FlociContainer {
 
   withOpenSearchConfig(config: OpenSearchConfig): this {
     this.openSearchConfig = config;
-    this.refreshExposedPorts();
+    this.updatePortConfig('opensearch', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -453,7 +458,7 @@ export class FlociContainer {
 
   withRdsConfig(config: RdsConfig): this {
     this.rdsConfig = config;
-    this.refreshExposedPorts();
+    this.updatePortConfig('rds', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -598,7 +603,7 @@ export class FlociContainer {
 
   withNeptuneConfig(config: NeptuneConfig): this {
     this.neptuneConfig = config;
-    this.refreshExposedPorts();
+    this.updatePortConfig('neptune', config);
     config.applyEnvVarsTo(this);
     return this;
   }
@@ -727,14 +732,23 @@ export class FlociContainer {
   }
 
   private refreshExposedPorts(): void {
-    const portConfigs: ServiceConfig[] = [
-      this.lambdaConfig, this.rdsConfig, this.elastiCacheConfig,
-      this.openSearchConfig, this.ecrConfig, this.eksConfig,
-      this.neptuneConfig, this.ec2Config, this.elbV2Config,
-    ];
-    for (const config of portConfigs) {
-      config.applyExposedPortsTo(this);
+    this.exposedPorts.clear();
+    this.exposedPorts.add(FlociContainer.PORT);
+    for (const port of this.manualExposedPorts) {
+      this.exposedPorts.add(port);
     }
+    const target: FlociContainerTarget = {
+      withEnv: (key, value) => this.withEnv(key, value),
+      withExposedPort: (port) => this.exposedPorts.add(port),
+    };
+    for (const config of this.configuredPortServices.values()) {
+      config.applyExposedPortsTo(target);
+    }
+  }
+
+  private updatePortConfig(name: string, config: ServiceConfig): void {
+    this.configuredPortServices.set(name, config);
+    this.refreshExposedPorts();
   }
 }
 
