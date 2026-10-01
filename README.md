@@ -310,6 +310,8 @@ await floci.stop();
 
 ## Container options
 
+By default, only the Floci gateway port (4566) is published to the host. Extra service ports are published only when their service configuration is explicitly supplied, or when `withExposedPort(port)` is called. Replacing a service configuration updates its published port range; disabling the service removes that range. This avoids publishing hundreds of unused proxy ports for tests that only use the gateway.
+
 ```ts
 const floci = await new FlociContainer('floci/floci:latest')  // pin a specific tag
   .withRegion('eu-west-1')
