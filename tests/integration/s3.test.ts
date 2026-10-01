@@ -12,7 +12,7 @@ describe('S3 (integration)', () => {
   let s3: S3Client;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer().withoutDockerSocket().start();
     s3 = new S3Client({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),
