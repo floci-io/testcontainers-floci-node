@@ -270,6 +270,26 @@ const floci = await new FlociContainer()
 await floci.stop();
 ```
 
+### Docker Socket
+
+By default, the host Docker socket is mounted read-write at `/var/run/docker.sock` for container-backed services. Tests using only in-process services can omit this mount:
+
+```ts
+const floci = await new FlociContainer().withoutDockerSocket().start();
+await floci.stop();
+```
+
+For a rootless Docker daemon, pass its host socket path. It is still mounted at `/var/run/docker.sock` inside Floci:
+
+```ts
+const floci = await new FlociContainer()
+  .withDockerSocket(`${process.env.XDG_RUNTIME_DIR}/docker.sock`)
+  .start();
+await floci.stop();
+```
+
+`withDockerSocket()` also restores the default mount after `withoutDockerSocket()`.
+
 ### DuckDB Configuration
 
 ```ts

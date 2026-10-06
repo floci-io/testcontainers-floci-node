@@ -22,6 +22,56 @@ import {
   StorageConfig,
   DuckDbConfig,
 } from '../../src';
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
+
+describe('FlociContainer Docker socket mount', () => {
+  const startWithMounts = async (container: FlociContainer) => {
+    const mounts = jest.spyOn(GenericContainer.prototype, 'withBindMounts');
+    jest.spyOn(GenericContainer.prototype, 'start').mockResolvedValue({} as StartedTestContainer);
+    await container.start();
+    return mounts.mock.calls[0][0];
+  };
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('preserves the default Docker socket mount', async () => {
+    expect(await startWithMounts(new FlociContainer())).toContainEqual({
+      source: '/var/run/docker.sock', target: '/var/run/docker.sock', mode: 'rw',
+    });
+  });
+
+  it('omits the Docker socket while retaining a configured storage mount', async () => {
+    const mounts = await startWithMounts(
+      new FlociContainer()
+        .withStorageConfig(new StorageConfig('/tmp/floci-data'))
+        .withoutDockerSocket(),
+    );
+    expect(mounts).toEqual([{ source: '/tmp/floci-data', target: '/app/data', mode: 'rw' }]);
+  });
+
+  it('mounts a custom host socket at the container socket path', async () => {
+    const mounts = await startWithMounts(
+      new FlociContainer().withDockerSocket('/run/user/1000/docker.sock'),
+    );
+    expect(mounts).toContainEqual({
+      source: '/run/user/1000/docker.sock', target: '/var/run/docker.sock', mode: 'rw',
+    });
+  });
+
+  it('can restore the default mount after disabling it', async () => {
+    const container = new FlociContainer();
+    expect(container.withoutDockerSocket().withDockerSocket()).toBe(container);
+    expect(await startWithMounts(container)).toContainEqual({
+      source: '/var/run/docker.sock', target: '/var/run/docker.sock', mode: 'rw',
+    });
+  });
+
+  it('rejects an empty host socket path', () => {
+    expect(() => new FlociContainer().withDockerSocket('  ')).toThrow(
+      'Docker socket path must not be empty',
+    );
+  });
+});
 
 describe('FlociContainer (unit)', () => {
   it('has correct defaults', () => {
