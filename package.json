@@ -2,7 +2,7 @@
   "name": "@floci/testcontainers",
   "version": "0.1.0",
   "description": "Testcontainers module for Floci — the open-source local AWS emulator",
-  "keywords": ["testcontainers", "floci", "aws", "localstack", "testing"],
+  "keywords": ["testcontainers", "floci", "aws", "testing"],
   "license": "MIT",
   "homepage": "https://github.com/floci-io/testcontainers-floci-node",
   "repository": {
