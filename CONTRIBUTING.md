@@ -114,7 +114,8 @@ When Floci adds a new service, the typical steps are:
    - Add `withXConfig(config)` method (must return `this`)
    - Add `getXConfig()` getter
    - Register in `applyAllConfigs()`
-   - If the service exposes extra ports, add to `refreshExposedPorts()`
+   - If the service exposes extra ports, call `updatePortConfig('<service>', config)` from `withXConfig()` and verify
+     `applyExposedPortsTo()` publishes ports only when enabled. Default containers publish only port 4566.
 5. Add a unit test in `tests/unit/FlociContainer.test.ts` verifying config storage and chaining.
 6. Add an integration test in `tests/integration/<service>.test.ts` using the corresponding AWS SDK v3 client.
 7. Update the README config table.

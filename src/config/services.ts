@@ -201,8 +201,10 @@ export class EcrConfig implements ServiceConfig {
   }
 
   applyExposedPortsTo(c: FlociContainerTarget): void {
-    for (const port of range(this.registryBasePort, this.registryPortCount)) {
-      c.withExposedPort(port);
+    if (this.enabled) {
+      for (const port of range(this.registryBasePort, this.registryPortCount)) {
+        c.withExposedPort(port);
+      }
     }
   }
 }
@@ -240,8 +242,10 @@ export class EksConfig implements ServiceConfig {
   }
 
   applyExposedPortsTo(c: FlociContainerTarget): void {
-    for (const port of range(this.apiServerBasePort, this.apiServerPortCount)) {
-      c.withExposedPort(port);
+    if (this.enabled) {
+      for (const port of range(this.apiServerBasePort, this.apiServerPortCount)) {
+        c.withExposedPort(port);
+      }
     }
   }
 }
@@ -261,8 +265,10 @@ export class ElastiCacheConfig implements ServiceConfig {
   }
 
   applyExposedPortsTo(c: FlociContainerTarget): void {
-    for (const port of range(this.proxyBasePort, this.proxyPortCount)) {
-      c.withExposedPort(port);
+    if (this.enabled) {
+      for (const port of range(this.proxyBasePort, this.proxyPortCount)) {
+        c.withExposedPort(port);
+      }
     }
   }
 }
@@ -380,7 +386,7 @@ export class LambdaConfig implements ServiceConfig {
   }
 
   applyExposedPortsTo(c: FlociContainerTarget): void {
-    if (this.exposeRuntimePorts) {
+    if (this.enabled && this.exposeRuntimePorts) {
       for (const port of range(this.runtimeApiBasePort, this.runtimeApiPortCount)) {
         c.withExposedPort(port);
       }
@@ -421,8 +427,10 @@ export class OpenSearchConfig implements ServiceConfig {
   }
 
   applyExposedPortsTo(c: FlociContainerTarget): void {
-    for (const port of range(this.proxyBasePort, this.proxyPortCount)) {
-      c.withExposedPort(port);
+    if (this.enabled) {
+      for (const port of range(this.proxyBasePort, this.proxyPortCount)) {
+        c.withExposedPort(port);
+      }
     }
   }
 }
@@ -456,8 +464,10 @@ export class RdsConfig implements ServiceConfig {
   }
 
   applyExposedPortsTo(c: FlociContainerTarget): void {
-    for (const port of range(this.proxyBasePort, this.proxyPortCount)) {
-      c.withExposedPort(port);
+    if (this.enabled) {
+      for (const port of range(this.proxyBasePort, this.proxyPortCount)) {
+        c.withExposedPort(port);
+      }
     }
   }
 }
