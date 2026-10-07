@@ -3,6 +3,14 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  # Re-publish an existing release tag with the current workflow, for example after a failed
+  # publish. The tagged source is built and published; the workflow file comes from the
+  # branch the dispatch runs on.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to publish (for example 0.2.0)"
+        required: true
 
 permissions:
   contents: read
@@ -14,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -45,6 +55,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -60,6 +72,11 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      # Trusted publishing (OIDC login) needs npm >= 11.5.1; Node 20 ships npm 10.x, which signs
+      # provenance but cannot log in with the OIDC token, so the registry answers E404.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@11 && npm --version
 
       - name: Publish to npm
         run: npm publish --provenance --access public
@@ -77,6 +94,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -92,6 +111,9 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@11 && npm --version
 
       - name: Publish beta to npm
         run: npm publish --provenance --access public --tag beta
