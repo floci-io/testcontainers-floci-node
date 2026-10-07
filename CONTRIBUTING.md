@@ -66,17 +66,8 @@ tests/
 
 ## Branching Model
 
-| Branch        | Purpose                                              |
-|---------------|------------------------------------------------------|
-| `main`        | Active development; targets the latest version line  |
-| `release/*`   | Stable release lines managed by semantic-release     |
-
-**Where to target your pull request:**
-
-- Bug fixes and new features → `main`
-- Backports of critical fixes → the relevant `release/*` branch
-
-When in doubt, open the PR against `main`.
+All pull requests target `main`. Releases are cut from `main` by semantic-release; there are no
+release branches.
 
 ## Making a Contribution
 
@@ -201,11 +192,17 @@ Once your current pull requests are reviewed, merged, or closed, you are welcome
 
 ## Releases
 
-Releases are managed by the maintainers via semantic-release on `release/*` branches. The workflow:
+Releases are automatic. When a PR merges to `main` and touches `src/`, `tests/`, `package.json`,
+`.releaserc.json` or the workflow, the `Semantic Release` workflow:
 
-1. Calculates the next version from conventional commit history.
-2. Updates `package.json`, generates `CHANGELOG.md`, tags the commit, and creates a GitHub Release.
-3. Publishes to npm as `@floci/testcontainers`.
+1. Calculates the next version from the Conventional Commits since the last `X.Y.Z` tag: `fix:` and
+   `perf:` give a patch release, `feat:` a minor release, and `docs:`, `chore:`, `ci:` and `test:` none.
+2. Updates `package.json`, generates `CHANGELOG.md`, commits them to `main`, tags the commit, and
+   creates a GitHub Release.
+3. The release triggers `publish.yml`, which publishes `@floci/testcontainers` to npm with provenance
+   (trusted publishing, no token).
+
+The package is in 0.x; a breaking change (`feat!:` or a `BREAKING CHANGE:` footer) moves it to 1.0.0.
 
 Contributors do not need to manage versions or tags.
 
