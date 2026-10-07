@@ -184,9 +184,14 @@ Do not add `Co-Authored-By` trailers for AI tools in commit messages.
 
 ## Release Awareness
 
-- Releases use semantic-release on `release/*` branches
-- Tags trigger the publish workflow
-- `main` branch runs CI but does not auto-publish
+- Releases are cut from `main` by semantic-release (`.github/workflows/semver.yml`); there are no
+  release branches. Every merge to `main` that touches `src/`, `tests/`, `package.json` or the release
+  config is analysed: `feat:` gives a minor release, `fix:`/`perf:` a patch, other types none.
+- Commit types therefore decide what ships. Do not use `feat:` or `fix:` for changes that should not
+  release, and mark breaking changes (`feat!:` / `BREAKING CHANGE:`), which move 0.x to 1.0.0.
+- semantic-release commits `package.json` and `CHANGELOG.md`, tags `X.Y.Z` (no `v`) and creates the
+  GitHub release; the release triggers `publish.yml`, which publishes to npm via OIDC. Never bump the
+  version, edit `CHANGELOG.md` or create tags by hand.
 
 ---
 
