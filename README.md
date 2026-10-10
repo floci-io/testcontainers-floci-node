@@ -272,7 +272,9 @@ await floci.stop();
 
 ### Docker Socket
 
-By default, the host Docker socket is mounted read-write at `/var/run/docker.sock` for container-backed services. Tests using only in-process services can omit this mount:
+Container-backed services (Lambda, RDS, ElastiCache, ECS, EC2, EKS, ECR, MSK, OpenSearch, Athena, CodeBuild, Neptune) start sibling containers and need the host Docker socket. It is mounted read-write at `/var/run/docker.sock` only while at least one of them is enabled and not in `mock` mode, decided from the final environment when the container starts. All services are enabled by default, so a default container gets the socket.
+
+To never mount it (hosts where the socket cannot be mounted, such as rootless Podman with SELinux):
 
 ```ts
 const floci = await new FlociContainer().withoutDockerSocket().start();
@@ -288,7 +290,15 @@ const floci = await new FlociContainer()
 await floci.stop();
 ```
 
-`withDockerSocket()` also restores the default mount after `withoutDockerSocket()`.
+`withDockerSocket()` (with or without a path) always mounts the socket, overriding detection.
+
+Each container also gets a unique `FLOCI_DOCKER_RESOURCE_NAMESPACE` (`tc-…`), so sibling containers of parallel
+test runs never collide by name; `withResourceNamespace(name)` overrides it.
+
+### Resetting state
+
+`await floci.reset()` wipes all emulator state (buckets, queues, tables, …) without restarting the container, which
+is handy when one container is shared across test files.
 
 ### DuckDB Configuration
 

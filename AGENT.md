@@ -52,10 +52,13 @@ The module follows a simple layered design:
 
 | File | Purpose |
 |------|---------|
-| `src/FlociContainer.ts` | Main container builder and started container classes |
-| `src/config/services.ts` | All service config classes |
-| `src/config/index.ts` | Config barrel exports |
+| `src/core/CloudDescriptor.ts` | `CloudDescriptor`: one emulator's facts as data (image, port, env prefix, health/reset paths, socket services) |
+| `src/core/FlociBaseContainer.ts` | Cloud-independent container and started container: env/ports, readiness, socket detection, network, namespace, log level, reset |
+| `src/aws/FlociContainer.ts` | The `AWS` descriptor, `FlociContainer` and `StartedFlociContainer` built on the core |
+| `src/aws/config/services.ts` | All AWS service config classes |
+| `src/aws/config/index.ts` | AWS config barrel exports |
 | `src/index.ts` | Public API barrel exports |
+| `src/FlociContainer.ts`, `src/config/*` | Aliases of the `src/aws/` files for old deep imports; keep them re-exporting, never put code there |
 
 ### Config Class Pattern
 
@@ -124,15 +127,17 @@ Integration tests require `NODE_OPTIONS=--experimental-vm-modules` (already conf
 
 ### When adding a new service config
 
-1. Add the config class to `src/config/services.ts`
-2. Export it from `src/config/index.ts`
+1. Add the config class to `src/aws/config/services.ts`
+2. Export it from `src/aws/config/index.ts`
 3. Export it from `src/index.ts`
 4. Add `withXConfig()` and `getXConfig()` methods to `FlociContainer`
 5. Add the config to `applyAllConfigs()` in `FlociContainer`
 6. If the service uses extra ports, call `updatePortConfig('<service>', config)` from its `withXConfig()` method
    and guard `applyExposedPortsTo()` when the service is disabled. Only explicitly supplied service configs publish extra ports.
-7. Add unit tests for the config wiring
-8. Add an integration test using the corresponding AWS SDK client
+7. If the service spawns sibling containers, add it to `socketServices` in the `AWS` descriptor
+   (`mockable: true` if the Java config's `requiresDockerSocket()` checks `!mock`)
+8. Add unit tests for the config wiring
+9. Add an integration test using the corresponding AWS SDK client
 
 ---
 
