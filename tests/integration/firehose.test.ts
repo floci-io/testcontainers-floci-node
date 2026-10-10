@@ -5,6 +5,7 @@ import {
 } from '@aws-sdk/client-firehose';
 import { S3Client, CreateBucketCommand } from '@aws-sdk/client-s3';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('Firehose (integration)', () => {
   let floci: StartedFlociContainer;
@@ -12,7 +13,7 @@ describe('Firehose (integration)', () => {
   let s3: S3Client;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     firehose = new FirehoseClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

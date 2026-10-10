@@ -6,13 +6,14 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('S3 (integration)', () => {
   let floci: StartedFlociContainer;
   let s3: S3Client;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().withoutDockerSocket().start();
+    floci = await new FlociContainer(TEST_IMAGE).withoutDockerSocket().start();
     s3 = new S3Client({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

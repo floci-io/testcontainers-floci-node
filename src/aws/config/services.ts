@@ -447,10 +447,18 @@ export class RdsConfig implements ServiceConfig {
     readonly defaultPostgresImage: string = 'postgres:16-alpine',
     readonly defaultMysqlImage: string = 'mysql:8.0',
     readonly defaultMariadbImage: string = 'mariadb:11',
+    /**
+     * Hostname Floci advertises in RDS endpoints. Unset means the Docker host, so clients on the
+     * host can connect (Floci then advertises the published proxy port).
+     */
+    readonly endpointHost?: string,
   ) {}
 
   applyEnvVarsTo(c: FlociContainerTarget): void {
     c.withEnv('FLOCI_SERVICES_RDS_ENABLED', String(this.enabled));
+    if (this.endpointHost) {
+      c.withEnv('FLOCI_SERVICES_RDS_ENDPOINT_HOST', this.endpointHost);
+    }
     c.withEnv('FLOCI_SERVICES_RDS_PROXY_BASE_PORT', String(this.proxyBasePort));
     c.withEnv('FLOCI_SERVICES_RDS_DEFAULT_POSTGRES_IMAGE', this.defaultPostgresImage);
     c.withEnv('FLOCI_SERVICES_RDS_DEFAULT_MYSQL_IMAGE', this.defaultMysqlImage);

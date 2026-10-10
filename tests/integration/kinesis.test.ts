@@ -4,13 +4,14 @@ import {
   ListStreamsCommand,
 } from '@aws-sdk/client-kinesis';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('Kinesis (integration)', () => {
   let floci: StartedFlociContainer;
   let kinesis: KinesisClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     kinesis = new KinesisClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

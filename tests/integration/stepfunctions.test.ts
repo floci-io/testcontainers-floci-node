@@ -4,13 +4,14 @@ import {
   ListStateMachinesCommand,
 } from '@aws-sdk/client-sfn';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('Step Functions (integration)', () => {
   let floci: StartedFlociContainer;
   let sfn: SFNClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     sfn = new SFNClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

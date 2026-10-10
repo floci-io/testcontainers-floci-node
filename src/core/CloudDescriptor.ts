@@ -9,6 +9,19 @@ export interface SocketService {
 }
 
 /**
+ * A service setting that must name a host the test process can reach, such as the AWS RDS
+ * endpoint host. When the service is enabled and the setting is unset, the container sets it to
+ * the Docker host at start.
+ */
+export interface HostSetting {
+  readonly token: string;
+  readonly setting: string;
+}
+
+/** The label every Floci emulator puts on the sibling containers it spawns, holding its namespace. */
+export const NAMESPACE_LABEL = 'floci_namespace';
+
+/**
  * The facts that tell one Floci emulator apart from another, as data. A cloud module
  * (AWS today; Azure, GCP and OCI later) is this descriptor plus its own service configs and
  * connection helpers.
@@ -30,6 +43,8 @@ export interface CloudDescriptor {
   readonly logLevelEnv: string;
   /** Services that need the host Docker socket. */
   readonly socketServices: readonly SocketService[];
+  /** Settings pointed at the Docker host at start, unless set or their service is disabled. */
+  readonly hostSettings?: readonly HostSetting[];
   /** Settings every container of this cloud needs, applied first so callers can override them. */
   readonly defaultEnv?: Readonly<Record<string, string>>;
 }
@@ -47,6 +62,12 @@ export function resourceNamespaceEnv(d: CloudDescriptor): string {
 /** Env var of one service setting, e.g. `serviceEnv(AWS, 'SQS', 'ENABLED')`. */
 export function serviceEnv(d: CloudDescriptor, token: string, setting: string): string {
   return `${d.envPrefix}SERVICES_${token}_${setting}`;
+}
+
+/** Whether a service is enabled in `env`; a missing `_ENABLED` key means enabled. */
+export function serviceEnabled(d: CloudDescriptor, env: Readonly<Record<string, string>>, token: string): boolean {
+  const enabled = env[serviceEnv(d, token, 'ENABLED')];
+  return enabled === undefined || enabled.toLowerCase() === 'true';
 }
 
 /**

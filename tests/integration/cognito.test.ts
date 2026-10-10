@@ -4,13 +4,14 @@ import {
   ListUserPoolsCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('Cognito (integration)', () => {
   let floci: StartedFlociContainer;
   let cognito: CognitoIdentityProviderClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     cognito = new CognitoIdentityProviderClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

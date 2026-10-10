@@ -88,6 +88,8 @@ export const AWS: CloudDescriptor = {
     { token: 'OPENSEARCH', mockable: true },
     { token: 'RDS' },
   ],
+  // RDS clients connect to the endpoint the API returns, so it must be reachable from the host.
+  hostSettings: [{ token: 'RDS', setting: 'ENDPOINT_HOST' }],
 };
 
 /**
@@ -664,6 +666,7 @@ export class FlociContainer extends FlociBaseContainer {
       network,
       tlsEnabled: this.tlsConfig.enabled,
       hostPersistentPath: this.storageConfig?.hostPersistentPath,
+      resourceNamespace: this.getResourceNamespace(),
     });
   }
 
@@ -715,9 +718,10 @@ export class StartedFlociContainer extends StartedFlociBaseContainer {
       network?: StartedNetwork;
       tlsEnabled: boolean;
       hostPersistentPath?: string;
+      resourceNamespace?: string;
     },
   ) {
-    super(container, AWS, opts.network, opts.dedicatedNetworkName);
+    super(container, AWS, opts.network, opts.dedicatedNetworkName, opts.resourceNamespace);
     this.region = opts.region;
     this.availabilityZone = opts.availabilityZone;
     this.accountId = opts.accountId;
