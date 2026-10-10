@@ -22,8 +22,6 @@ const LOG_LEVELS: LogLevel[] = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
 export interface FlociContainerTarget {
   withEnv(key: string, value: string): unknown;
   withExposedPort(port: number): unknown;
-  /** Drops a setting an earlier config wrote, so a replacing config can restore a default. */
-  withoutEnv?(key: string): unknown;
 }
 
 /** A per-service config: writes its env vars, and exposes ports when the service needs them. */
@@ -72,12 +70,6 @@ export abstract class FlociBaseContainer {
 
   withEnv(key: string, value: string): this {
     this.envVars[key] = value;
-    return this;
-  }
-
-  /** Remove an env var, e.g. one an earlier service config set. */
-  withoutEnv(key: string): this {
-    delete this.envVars[key];
     return this;
   }
 

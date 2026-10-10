@@ -448,6 +448,13 @@ export class FlociContainer extends FlociBaseContainer {
   getPipesConfig(): PipesConfig { return this.pipesConfig; }
 
   withRdsConfig(config: RdsConfig): this {
+    // A host the previous RdsConfig wrote belongs to that config: a new one without a host drops
+    // it, so the Docker-host default applies. A host set any other way (withEnv) is the caller's
+    // and stays.
+    const hostKey = 'FLOCI_SERVICES_RDS_ENDPOINT_HOST';
+    if (!config.endpointHost && this.rdsConfig.endpointHost && this.envVars[hostKey] === this.rdsConfig.endpointHost) {
+      delete this.envVars[hostKey];
+    }
     this.rdsConfig = config;
     this.updatePortConfig('rds', config);
     config.applyEnvVarsTo(this);

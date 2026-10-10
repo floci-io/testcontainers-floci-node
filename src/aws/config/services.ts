@@ -458,9 +458,6 @@ export class RdsConfig implements ServiceConfig {
     c.withEnv('FLOCI_SERVICES_RDS_ENABLED', String(this.enabled));
     if (this.endpointHost) {
       c.withEnv('FLOCI_SERVICES_RDS_ENDPOINT_HOST', this.endpointHost);
-    } else {
-      // The latest config wins: drop a host an earlier config set, so the Docker-host default applies.
-      c.withoutEnv?.('FLOCI_SERVICES_RDS_ENDPOINT_HOST');
     }
     c.withEnv('FLOCI_SERVICES_RDS_PROXY_BASE_PORT', String(this.proxyBasePort));
     c.withEnv('FLOCI_SERVICES_RDS_DEFAULT_POSTGRES_IMAGE', this.defaultPostgresImage);
