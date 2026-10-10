@@ -66,7 +66,7 @@ tests/
 
 ## Branching Model
 
-All pull requests target `main`. Releases are cut from `main` by semantic-release; there are no
+All pull requests target `main`. Releases are cut from `main` by release-please; there are no
 release branches.
 
 ## Making a Contribution
@@ -192,19 +192,19 @@ Once your current pull requests are reviewed, merged, or closed, you are welcome
 
 ## Releases
 
-Releases are automatic. When a PR merges to `main` and touches `src/`, `tests/`, `package.json`,
-`.releaserc.json` or the workflow, the `Semantic Release` workflow:
+Releases follow the same release-please flow as the Java module (`.github/workflows/release-please.yml`):
 
-1. Calculates the next version from the Conventional Commits since the last `X.Y.Z` tag: `fix:` and
-   `perf:` give a patch release, `feat:` a minor release, and `docs:`, `chore:`, `ci:` and `test:` none.
-2. Updates `package.json`, generates `CHANGELOG.md`, commits them to `main`, tags the commit, and
-   creates a GitHub Release.
-3. The release triggers `publish.yml`, which publishes `@floci/testcontainers` to npm with provenance
-   (trusted publishing, no token).
+1. Every push to `main` lets release-please update one **release PR**. It computes the next version from
+   the Conventional Commits since the last release (`fix:`/`perf:` a patch, `feat:` a minor, `feat!:` or a
+   `BREAKING CHANGE:` footer a major; `docs:`, `chore:`, `ci:`, `test:` none), bumps `package.json` and
+   `package-lock.json`, and writes the `CHANGELOG.md` entry. Commits are linted in CI (`commit-lint`).
+2. To release, review and merge the release PR. release-please tags `vX.Y.Z` and creates the GitHub
+   release; the same workflow publishes `@floci/testcontainers` to npm with provenance (trusted
+   publishing, no token) and runs the security scans (CodeQL, Trivy) against the tag.
+3. To recover a release (for example a failed publish), run **Release Please** manually with the `tag`
+   input set to the existing tag.
 
-The package is in 0.x; a breaking change (`feat!:` or a `BREAKING CHANGE:` footer) moves it to 1.0.0.
-
-Contributors do not need to manage versions or tags.
+The package is in 0.x; a breaking change moves it to 1.0.0.
 
 ## Reporting Security Issues
 
