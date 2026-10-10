@@ -4,13 +4,14 @@ import {
   ListCertificatesCommand,
 } from '@aws-sdk/client-acm';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('ACM (integration)', () => {
   let floci: StartedFlociContainer;
   let acm: ACMClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     acm = new ACMClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

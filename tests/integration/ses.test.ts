@@ -4,13 +4,14 @@ import {
   ListIdentitiesCommand,
 } from '@aws-sdk/client-ses';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('SES (integration)', () => {
   let floci: StartedFlociContainer;
   let ses: SESClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     ses = new SESClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

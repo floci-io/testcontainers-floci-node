@@ -6,13 +6,14 @@ import {
   GetItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('DynamoDB (integration)', () => {
   let floci: StartedFlociContainer;
   let ddb: DynamoDBClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     ddb = new DynamoDBClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

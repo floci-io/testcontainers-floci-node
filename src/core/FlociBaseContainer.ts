@@ -1,11 +1,14 @@
 import crypto from 'crypto';
-import { GenericContainer, Network, Wait } from 'testcontainers';
+import { GenericContainer, Network, Wait, getContainerRuntimeClient } from 'testcontainers';
 import type { ExecResult, StartedNetwork, StartedTestContainer } from 'testcontainers';
 import {
   CloudDescriptor,
+  NAMESPACE_LABEL,
   dockerSocketRequired,
   networkEnv,
   resourceNamespaceEnv,
+  serviceEnabled,
+  serviceEnv,
 } from './CloudDescriptor';
 
 export const DOCKER_SOCKET = '/var/run/docker.sock';
@@ -166,6 +169,32 @@ export abstract class FlociBaseContainer {
     return [];
   }
 
+  /**
+   * The env the container starts with: the configured env plus every unset host setting of an
+   * enabled service pointed at the Docker host. Without it Floci advertises sibling containers'
+   * bridge addresses (e.g. RDS endpoints), which only a Linux host can reach.
+   */
+  private async environmentAtStart(): Promise<Record<string, string>> {
+    const env = { ...this.envVars };
+    const missing = (this.descriptor.hostSettings ?? [])
+      .map((hs) => ({ token: hs.token, key: serviceEnv(this.descriptor, hs.token, hs.setting) }))
+      .filter((hs) => env[hs.key] === undefined && serviceEnabled(this.descriptor, env, hs.token));
+    if (missing.length > 0) {
+      let host: string | undefined;
+      try {
+        host = (await getContainerRuntimeClient()).info.containerRuntime.host;
+      } catch {
+        // No runtime to ask: the start below fails on its own, so leave Floci's default.
+      }
+      for (const hs of missing) {
+        if (host) {
+          env[hs.key] = host;
+        }
+      }
+    }
+    return env;
+  }
+
   /** Start the emulator and wait until its health path answers 200. */
   protected async startContainer(): Promise<{ container: StartedTestContainer; network?: StartedNetwork }> {
     let network: StartedNetwork | undefined;
@@ -183,7 +212,7 @@ export abstract class FlociBaseContainer {
 
     let container = new GenericContainer(this.image)
       .withExposedPorts(...Array.from(this.exposedPorts))
-      .withEnvironment(this.envVars)
+      .withEnvironment(await this.environmentAtStart())
       .withBindMounts(bindMounts)
       .withWaitStrategy(
         Wait.forHttp(this.descriptor.healthPath, this.descriptor.port)
@@ -204,7 +233,13 @@ export class StartedFlociBaseContainer {
     protected readonly descriptor: CloudDescriptor,
     protected readonly network?: StartedNetwork,
     private readonly dedicatedNetworkName?: string,
+    private readonly resourceNamespace?: string,
   ) {}
+
+  /** Prefix of the sibling containers' names; their `floci_namespace` label holds it. */
+  getResourceNamespace(): string | undefined {
+    return this.resourceNamespace;
+  }
 
   /** Base URL of the emulator, e.g. `http://localhost:32768`. */
   getEndpoint(): string {
@@ -234,10 +269,36 @@ export class StartedFlociBaseContainer {
     }
   }
 
+  /**
+   * Stop the emulator, then remove the sibling containers it spawned (those labelled with its
+   * resource namespace), then the dedicated network. Floci manages the siblings and the
+   * testcontainers reaper does not track them, so without this they outlive the run; a leaked one
+   * with a fixed host port, such as the AWS ECR registry, blocks the next run. Containers sharing
+   * a namespace set with `withResourceNamespace` lose their siblings too.
+   */
   async stop(): Promise<void> {
     await this.container.stop();
+    if (this.resourceNamespace) {
+      await removeSiblings(this.resourceNamespace);
+    }
     if (this.network) {
       await this.network.stop();
     }
+  }
+}
+
+/** Remove every container labelled with `namespace`. Best effort: teardown never fails over leftovers. */
+async function removeSiblings(namespace: string): Promise<void> {
+  try {
+    const dockerode = (await getContainerRuntimeClient()).container.dockerode;
+    const siblings = await dockerode.listContainers({
+      all: true,
+      filters: { label: [`${NAMESPACE_LABEL}=${namespace}`] },
+    });
+    await Promise.all(
+      siblings.map((sibling) => dockerode.getContainer(sibling.Id).remove({ force: true, v: true }).catch(() => undefined)),
+    );
+  } catch {
+    // The runtime is unreachable or the list failed: nothing more to do during teardown.
   }
 }

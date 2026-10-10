@@ -4,13 +4,14 @@ import {
   DescribeLogGroupsCommand,
 } from '@aws-sdk/client-cloudwatch-logs';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('CloudWatch Logs (integration)', () => {
   let floci: StartedFlociContainer;
   let logs: CloudWatchLogsClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     logs = new CloudWatchLogsClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

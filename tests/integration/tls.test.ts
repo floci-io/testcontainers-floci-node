@@ -1,4 +1,5 @@
 import { FlociContainer, StartedFlociContainer, TlsConfig } from '../../src';
+import { TEST_IMAGE } from './images';
 
 jest.setTimeout(120_000);
 
@@ -6,7 +7,7 @@ describe('TLS secure endpoint (integration)', () => {
   let floci: StartedFlociContainer;
 
   beforeAll(async () => {
-    floci = await new FlociContainer()
+    floci = await new FlociContainer(TEST_IMAGE)
       .withTlsConfig(new TlsConfig(true))
       .start();
   });

@@ -215,6 +215,10 @@ const floci = await new FlociContainer()
   .start();
 ```
 
+The container sets `FLOCI_SERVICES_RDS_ENDPOINT_HOST` to the Docker host, so `DescribeDBInstances` returns an
+endpoint (host and published proxy port) that a client on the host can connect to, on Linux, macOS and Windows
+alike. Pass `endpointHost`, the last `RdsConfig` argument, to advertise another hostname.
+
 #### ElastiCache (Redis / Valkey)
 
 ```ts
@@ -294,6 +298,10 @@ await floci.stop();
 
 Each container also gets a unique `FLOCI_DOCKER_RESOURCE_NAMESPACE` (`tc-…`), so sibling containers of parallel
 test runs never collide by name; `withResourceNamespace(name)` overrides it.
+
+Floci manages the sibling containers it spawns; the testcontainers reaper does not track them. `stop()` removes
+every one of them after stopping Floci, found by the `floci_namespace` label that holds the namespace
+(`getResourceNamespace()` on the started container). Containers that share a namespace lose their siblings together.
 
 ### Resetting state
 

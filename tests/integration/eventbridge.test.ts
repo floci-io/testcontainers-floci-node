@@ -4,13 +4,14 @@ import {
   ListRulesCommand,
 } from '@aws-sdk/client-eventbridge';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('EventBridge (integration)', () => {
   let floci: StartedFlociContainer;
   let eventbridge: EventBridgeClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     eventbridge = new EventBridgeClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

@@ -134,3 +134,27 @@ describe('reset()', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 });
+
+describe('RDS endpoint host', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  const envAtStart = async (container: FlociContainer) => {
+    const env = jest.spyOn(GenericContainer.prototype, 'withEnvironment');
+    jest.spyOn(GenericContainer.prototype, 'start').mockResolvedValue({} as StartedTestContainer);
+    await container.start();
+    return env.mock.calls[0][0] as Record<string, string>;
+  };
+  const key = 'FLOCI_SERVICES_RDS_ENDPOINT_HOST';
+
+  it('drops the host an earlier RdsConfig set when a later one has none', async () => {
+    const c = new FlociContainer()
+      .withRdsConfig(new RdsConfig(true, 7001, 99, 'postgres:16-alpine', 'mysql:8.0', 'mariadb:11', 'rds.example.com'))
+      .withRdsConfig(new RdsConfig());
+    expect((await envAtStart(c))[key]).not.toBe('rds.example.com');
+  });
+
+  it('keeps a host set deliberately with withEnv', async () => {
+    const c = new FlociContainer().withEnv(key, 'db.internal').withRdsConfig(new RdsConfig());
+    expect((await envAtStart(c))[key]).toBe('db.internal');
+  });
+});

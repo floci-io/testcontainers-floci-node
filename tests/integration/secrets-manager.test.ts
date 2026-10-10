@@ -4,13 +4,14 @@ import {
   ListSecretsCommand,
 } from '@aws-sdk/client-secrets-manager';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('Secrets Manager (integration)', () => {
   let floci: StartedFlociContainer;
   let sm: SecretsManagerClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     sm = new SecretsManagerClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

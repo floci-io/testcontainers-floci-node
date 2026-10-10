@@ -8,6 +8,7 @@ import {
   CreateRoleCommand,
 } from '@aws-sdk/client-iam';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('Lambda (integration)', () => {
   let floci: StartedFlociContainer;
@@ -15,7 +16,7 @@ describe('Lambda (integration)', () => {
   let iam: IAMClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     lambda = new LambdaClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

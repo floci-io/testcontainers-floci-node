@@ -4,13 +4,14 @@ import {
   GetRestApisCommand,
 } from '@aws-sdk/client-api-gateway';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('API Gateway (integration)', () => {
   let floci: StartedFlociContainer;
   let apigw: APIGatewayClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     apigw = new APIGatewayClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

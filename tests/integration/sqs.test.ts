@@ -5,13 +5,14 @@ import {
   ReceiveMessageCommand,
 } from '@aws-sdk/client-sqs';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('SQS (integration)', () => {
   let floci: StartedFlociContainer;
   let sqs: SQSClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     sqs = new SQSClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

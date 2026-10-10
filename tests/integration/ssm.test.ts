@@ -4,13 +4,14 @@ import {
   GetParameterCommand,
 } from '@aws-sdk/client-ssm';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('SSM (integration)', () => {
   let floci: StartedFlociContainer;
   let ssm: SSMClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     ssm = new SSMClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),
