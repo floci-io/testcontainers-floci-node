@@ -184,14 +184,13 @@ Do not add `Co-Authored-By` trailers for AI tools in commit messages.
 
 ## Release Awareness
 
-- Releases are cut from `main` by semantic-release (`.github/workflows/semver.yml`); there are no
-  release branches. Every merge to `main` that touches `src/`, `tests/`, `package.json` or the release
-  config is analysed: `feat:` gives a minor release, `fix:`/`perf:` a patch, other types none.
-- Commit types therefore decide what ships. Do not use `feat:` or `fix:` for changes that should not
-  release, and mark breaking changes (`feat!:` / `BREAKING CHANGE:`), which move 0.x to 1.0.0.
-- semantic-release commits `package.json` and `CHANGELOG.md`, tags `X.Y.Z` (no `v`) and creates the
-  GitHub release; the release triggers `publish.yml`, which publishes to npm via OIDC. Never bump the
-  version, edit `CHANGELOG.md` or create tags by hand.
+- Releases follow the Java module's release-please flow (`.github/workflows/release-please.yml`): every
+  push to `main` updates one release PR; nothing is published until a maintainer merges it, which tags
+  `vX.Y.Z`, creates the GitHub release and publishes to npm via OIDC.
+- Commit types therefore decide what the release PR proposes: `feat:` a minor, `fix:`/`perf:` a patch,
+  other types none; mark breaking changes (`feat!:` / `BREAKING CHANGE:`), which move 0.x to 1.0.0.
+- release-please owns `package.json`'s version, `package-lock.json`'s version, `CHANGELOG.md` and the
+  tags. Never bump the version, edit `CHANGELOG.md` or create tags by hand.
 
 ---
 
