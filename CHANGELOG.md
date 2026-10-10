@@ -1,4 +1,13 @@
-# [0.2.0](https://github.com/floci-io/testcontainers-floci-node/compare/0.1.0...0.2.0) (2026-10-07)
+# Changelog
+
+## [0.3.0](https://github.com/floci-io/testcontainers-floci-node/compare/0.2.0...v0.3.0) (2026-10-10)
+
+
+### Features
+
+* shared core with a cloud descriptor; AWS code moves to src/aws ([#21](https://github.com/floci-io/testcontainers-floci-node/issues/21)) ([625ec07](https://github.com/floci-io/testcontainers-floci-node/commit/625ec07d3770d42af3136028f7660d9c60ab26c8))
+
+## [0.2.0](https://github.com/floci-io/testcontainers-floci-node/compare/0.1.0...0.2.0) (2026-10-07)
 
 
 ### Bug Fixes
