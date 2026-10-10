@@ -61,6 +61,14 @@ yarn add --dev @floci/testcontainers
 pnpm add --save-dev @floci/testcontainers
 ```
 
+`testcontainers` is a peer dependency. Versions 10, 11 and 12 are supported, so install the one that fits your project:
+
+```bash
+npm install --save-dev testcontainers
+```
+
+Note that testcontainers 11 requires Node 20 or later and testcontainers 12 requires Node 22.22 or later.
+
 ## Quick start
 
 ```ts
