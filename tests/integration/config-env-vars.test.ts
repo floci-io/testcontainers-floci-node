@@ -16,12 +16,13 @@ import {
   StorageConfig,
   DuckDbConfig,
 } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('Config environment variable verification (integration)', () => {
   let floci: StartedFlociContainer;
 
   beforeAll(async () => {
-    floci = await new FlociContainer()
+    floci = await new FlociContainer(TEST_IMAGE)
       .withCloudFrontConfig(new CloudFrontConfig(true, 'custom-cdn.example.com'))
       .withBackupConfig(new BackupConfig(true, 10))
       .withRoute53Config(

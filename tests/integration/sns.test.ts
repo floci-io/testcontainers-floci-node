@@ -4,13 +4,14 @@ import {
   ListTopicsCommand,
 } from '@aws-sdk/client-sns';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('SNS (integration)', () => {
   let floci: StartedFlociContainer;
   let sns: SNSClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     sns = new SNSClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

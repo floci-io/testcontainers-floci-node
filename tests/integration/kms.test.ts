@@ -4,13 +4,14 @@ import {
   ListKeysCommand,
 } from '@aws-sdk/client-kms';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('KMS (integration)', () => {
   let floci: StartedFlociContainer;
   let kms: KMSClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     kms = new KMSClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),

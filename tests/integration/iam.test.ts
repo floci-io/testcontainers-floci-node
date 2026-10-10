@@ -4,13 +4,14 @@ import {
   ListRolesCommand,
 } from '@aws-sdk/client-iam';
 import { FlociContainer, StartedFlociContainer } from '../../src';
+import { TEST_IMAGE } from './images';
 
 describe('IAM (integration)', () => {
   let floci: StartedFlociContainer;
   let iam: IAMClient;
 
   beforeAll(async () => {
-    floci = await new FlociContainer().start();
+    floci = await new FlociContainer(TEST_IMAGE).start();
     iam = new IAMClient({
       endpoint: floci.getEndpoint(),
       region: floci.getRegion(),
