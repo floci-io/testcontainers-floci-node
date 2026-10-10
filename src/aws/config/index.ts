@@ -1,6 +1,4 @@
-export { AWS, FlociContainer, StartedFlociContainer } from './aws/FlociContainer';
-export type { LogLevel } from './aws/FlociContainer';
-export type { ServiceConfig, FlociContainerTarget } from './aws/config';
+export type { ServiceConfig, FlociContainerTarget } from './services';
 export {
   AcmConfig,
   ApiGatewayConfig,
@@ -54,19 +52,7 @@ export {
   CostExplorerConfig,
   CurConfig,
   BcmDataExportsConfig,
-  TlsConfig,
-  StorageConfig,
-  DuckDbConfig,
-} from './aws/config';
-
-// Shared core: the base every cloud module builds on.
-export type { BindMount, CloudDescriptor, SocketService } from './core';
-export {
-  DOCKER_SOCKET,
-  FlociBaseContainer,
-  StartedFlociBaseContainer,
-  dockerSocketRequired,
-  networkEnv,
-  resourceNamespaceEnv,
-  serviceEnv,
-} from './core';
+} from './services';
+export { TlsConfig } from './TlsConfig';
+export { StorageConfig } from './StorageConfig';
+export { DuckDbConfig } from './DuckDbConfig';
