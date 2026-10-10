@@ -92,11 +92,14 @@ describe('RDS (integration)', () => {
           socket.end();
           resolve();
         });
-        socket.setTimeout(5_000, () => reject(new Error('connect timed out')));
+        socket.setTimeout(5_000, () => {
+        socket.destroy();
+        reject(new Error('connect timed out'));
+      });
         socket.on('error', reject);
       });
     } finally {
       await own.stop();
     }
-  });
+  }, 300_000);
 });
