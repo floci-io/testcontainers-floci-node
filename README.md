@@ -272,7 +272,7 @@ await floci.stop();
 
 ### Docker Socket
 
-Container-backed services (Lambda, RDS, ElastiCache, ECS, EC2, EKS, ECR, MSK, OpenSearch, Athena, CodeBuild) start sibling containers and need the host Docker socket. It is mounted read-write at `/var/run/docker.sock` only while at least one of them is enabled and not in `mock` mode, decided from the final environment when the container starts. All services are enabled by default, so a default container gets the socket.
+Container-backed services (Lambda, RDS, ElastiCache, ECS, EC2, EKS, ECR, MSK, OpenSearch, Athena, CodeBuild, Neptune) start sibling containers and need the host Docker socket. It is mounted read-write at `/var/run/docker.sock` only while at least one of them is enabled and not in `mock` mode, decided from the final environment when the container starts. All services are enabled by default, so a default container gets the socket.
 
 To never mount it (hosts where the socket cannot be mounted, such as rootless Podman with SELinux):
 

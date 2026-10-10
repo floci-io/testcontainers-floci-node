@@ -84,6 +84,7 @@ export const AWS: CloudDescriptor = {
     { token: 'ELASTICACHE' },
     { token: 'LAMBDA' },
     { token: 'MSK', mockable: true },
+    { token: 'NEPTUNE' },
     { token: 'OPENSEARCH', mockable: true },
     { token: 'RDS' },
   ],

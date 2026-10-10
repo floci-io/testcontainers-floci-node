@@ -10,6 +10,7 @@ import {
   FlociBaseContainer,
   FlociContainer,
   LambdaConfig,
+  NeptuneConfig,
   MskConfig,
   OpenSearchConfig,
   RdsConfig,
@@ -19,6 +20,7 @@ import {
 import * as services from '../../src/config/services';
 import * as awsServices from '../../src/aws/config/services';
 import { GenericContainer, StartedTestContainer } from 'testcontainers';
+import { StartedFlociBaseContainer } from '../../src/core';
 
 /** A container with every service that spawns sibling containers disabled. */
 const withoutSocketServices = () =>
@@ -32,6 +34,7 @@ const withoutSocketServices = () =>
     .withElastiCacheConfig(new ElastiCacheConfig(false))
     .withLambdaConfig(new LambdaConfig(false))
     .withMskConfig(new MskConfig(false))
+    .withNeptuneConfig(new NeptuneConfig(false))
     .withOpenSearchConfig(new OpenSearchConfig(false))
     .withRdsConfig(new RdsConfig(false));
 
@@ -102,5 +105,32 @@ describe('Docker socket detection', () => {
         expect.objectContaining({ target: '/var/run/docker.sock' }),
       );
     });
+  });
+});
+
+describe('reset()', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  const started = (descriptor = AWS) =>
+    new StartedFlociBaseContainer(
+      { getHost: () => 'localhost', getMappedPort: () => 32768 } as unknown as StartedTestContainer,
+      descriptor,
+    );
+
+  it('POSTs to the cloud reset path on the emulator endpoint', async () => {
+    const fetch = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
+    await started().reset();
+    expect(fetch).toHaveBeenCalledWith('http://localhost:32768/_floci/state/reset', { method: 'POST' });
+  });
+
+  it('fails when the emulator rejects the reset', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 400 }));
+    await expect(started().reset()).rejects.toThrow('state reset failed with HTTP 400');
+  });
+
+  it('fails for a cloud without a reset path, without calling the emulator', async () => {
+    const fetch = jest.spyOn(globalThis, 'fetch');
+    await expect(started({ ...AWS, resetPath: undefined }).reset()).rejects.toThrow('has no state reset');
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
