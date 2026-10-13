@@ -77,3 +77,7 @@ export {
 // live under the `az` namespace because some share a name with an AWS config (e.g. `TlsConfig`).
 export { AZ, FlociAzContainer, StartedFlociAzContainer } from './az';
 export * as az from './az';
+
+// GCP (floci/floci-gcp). Same shape as Azure: container classes by name, service configs under `gcp`.
+export { GCP, FlociGcpContainer, StartedFlociGcpContainer } from './gcp';
+export * as gcp from './gcp';

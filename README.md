@@ -32,7 +32,7 @@ A Node.js / TypeScript [Testcontainers](https://testcontainers.com/) module for 
 the free, open-source local cloud emulators. `FlociContainer` starts a Floci (AWS) container for your integration
 tests and gives you an endpoint and credentials to point the AWS SDK v3 at, plus a typed, per-service configuration
 API over the emulator's environment variables. `FlociAzContainer` does the same for [Azure](#azure) with the
-Floci Azure emulator. No cloud account, no auth token, MIT license.
+Floci Azure emulator, and `FlociGcpContainer` for [Google Cloud](#gcp) with the Floci GCP emulator. No cloud account, no auth token, MIT license.
 
 See the [Floci documentation](https://floci.io/floci/services/) for the full list of supported AWS services.
 
@@ -46,7 +46,7 @@ like popcorn.
 |----------------------------------------------------|-------|:----:|:------------------------------------------------------------------------------:|
 | [floci](https://github.com/floci-io/floci)         | AWS   | 4566 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
 | [floci-az](https://github.com/floci-io/floci-az)   | Azure | 4577 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
-| [floci-gcp](https://github.com/floci-io/floci-gcp) | GCP   | 4588 | Planned                                                                        |
+| [floci-gcp](https://github.com/floci-io/floci-gcp) | GCP   | 4588 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
 | [floci-oci](https://github.com/floci-io/floci-oci) | OCI   | 4599 | Planned                                                                        |
 
 ## Installation
@@ -170,6 +170,35 @@ await blobs.getContainerClient('my-container').create();
 await floci.reset(); // wipe all state, keep the container
 await floci.stop();
 ```
+
+### GCP
+
+`FlociGcpContainer` starts the [Floci GCP](https://github.com/floci-io/floci-gcp) emulator (`floci/floci-gcp`, port
+4588), with the same shared container behaviour. Google's SDKs find an emulator through environment variables such as
+`PUBSUB_EMULATOR_HOST` and `STORAGE_EMULATOR_HOST`; `getEmulatorEnv()` returns them all, pointing at the container.
+
+```ts
+import { PubSub } from '@google-cloud/pubsub';
+import { Storage } from '@google-cloud/storage';
+import { FlociGcpContainer } from '@floci/testcontainers';
+
+const floci = await new FlociGcpContainer().start();
+Object.assign(process.env, floci.getEmulatorEnv()); // before creating any client
+
+const storage = new Storage({ projectId: floci.getProjectId() });
+await storage.createBucket('my-bucket');
+
+const pubsub = new PubSub({ projectId: floci.getProjectId() });
+await pubsub.createTopic('my-topic');
+
+await floci.reset(); // wipe all state, keep the container
+await floci.stop();
+```
+
+Services without such a variable (BigQuery, Cloud Tasks, Cloud Run and others) take `floci.getEndpoint()` as the
+client's API endpoint. So do Cloud Logging and Cloud KMS: no client library reads `LOGGING_EMULATOR_HOST` or
+`KMS_EMULATOR_HOST`, which are there for code that builds those clients from them. The emulator accepts any project id; `withProjectId('my-project')` changes the default one,
+`floci-local`.
 
 ## Service configuration
 
@@ -437,6 +466,27 @@ the emulator's: see the [Floci Azure repository](https://github.com/floci-io/flo
 The Docker socket is mounted only while an enabled, unmocked service needs sibling containers (for example Event
 Hubs, Functions, Redis or the database services); `withDockerSocket()` and `withoutDockerSocket()` override that.
 
+### GCP
+
+Every GCP service has a config class with an `enabled` switch, and a `mock` switch where the emulator has one. They
+live under the `gcp` namespace:
+
+```ts
+import { FlociGcpContainer, gcp } from '@floci/testcontainers';
+
+const floci = await new FlociGcpContainer()
+  .withFirestoreConfig(new gcp.FirestoreConfig(false))  // disable a service
+  .withCloudSqlConfig(new gcp.CloudSqlConfig(true, true)) // enabled, mocked: no database container
+  .withTlsConfig(new gcp.TlsConfig(true))
+  .start();
+```
+
+Kubernetes Engine, Managed Kafka, Cloud SQL, Cloud Run and BigQuery run in sibling containers unless mocked, so the
+Docker socket is mounted while any of them is enabled and unmocked; mock or disable all five, or call
+`withoutDockerSocket()`, for a container that needs no socket. Typed settings for individual services will follow.
+Until then, set any emulator setting with `withEnv('FLOCI_GCP_…', value)`. The service list is the emulator's: see the
+[Floci GCP repository](https://github.com/floci-io/floci-gcp).
+
 ## Container options
 
 By default, only the Floci gateway port (4566) is published to the host. Extra service ports are published only when their service configuration is explicitly supplied, or when `withExposedPort(port)` is called. Replacing a service configuration updates its published port range; disabling the service removes that range. This avoids publishing hundreds of unused proxy ports for tests that only use the gateway.
@@ -473,6 +523,16 @@ const floci = await new FlociContainer('floci/floci:x.y.z')  // pin a specific t
 | `getAccountName()` / `getAccountKey()` | Storage account `devstoreaccount1` and its well-known development key |
 | `getSubscriptionId()` | The emulator's fixed subscription id |
 | `getTenantId()` | The default Microsoft Entra tenant id |
+
+### GCP
+
+| Method | Returns |
+|---|---|
+| `getEndpoint()` | `http://host:port` of the emulator |
+| `getProjectId()` | The default project id, `floci-local` unless set with `withProjectId()` |
+| `getEmulatorEnv()` | The variables Google SDKs read, as an object: `PUBSUB_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`, `DATASTORE_EMULATOR_HOST`, `SECRET_MANAGER_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`, `LOGGING_EMULATOR_HOST`, `KMS_EMULATOR_HOST` and `STORAGE_EMULATOR_HOST_GRPC` (`host:port`), `STORAGE_EMULATOR_HOST` (`http://host:port`) and `GOOGLE_CLOUD_PROJECT` |
+| `getHttpsEndpoint()` | `https://host:port`, served on the same port once TLS is enabled |
+| `getTlsCertificate()` | Promise of the PEM certificate to trust for the HTTPS endpoint (TLS must be enabled) |
 
 ### Troubleshooting
 
@@ -527,7 +587,7 @@ new FlociContainer('floci/floci:nightly'); // built from main every night
 | `floci/floci:nightly` | Built from `main` every night       |
 
 Every emulator publishes `latest`, `x.y.z` and `nightly` tags. `FlociAzContainer` defaults to `floci/floci-az:latest`
-and takes an image name the same way.
+and `FlociGcpContainer` to `floci/floci-gcp:latest`; both take an image name the same way.
 
 ## Requirements
 
