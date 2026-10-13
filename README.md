@@ -31,7 +31,8 @@
 A Node.js / TypeScript [Testcontainers](https://testcontainers.com/) module for [Floci](https://github.com/floci-io),
 the free, open-source local cloud emulators. `FlociContainer` starts a Floci (AWS) container for your integration
 tests and gives you an endpoint and credentials to point the AWS SDK v3 at, plus a typed, per-service configuration
-API over the emulator's environment variables. No cloud account, no auth token, MIT license.
+API over the emulator's environment variables. `FlociAzContainer` does the same for [Azure](#azure) with the
+Floci Azure emulator. No cloud account, no auth token, MIT license.
 
 See the [Floci documentation](https://floci.io/floci/services/) for the full list of supported AWS services.
 
@@ -44,7 +45,7 @@ like popcorn.
 | Emulator                                           | Cloud | Port | Supported                                                                      |
 |----------------------------------------------------|-------|:----:|:------------------------------------------------------------------------------:|
 | [floci](https://github.com/floci-io/floci)         | AWS   | 4566 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
-| [floci-az](https://github.com/floci-io/floci-az)   | Azure | 4577 | Planned                                                                        |
+| [floci-az](https://github.com/floci-io/floci-az)   | Azure | 4577 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
 | [floci-gcp](https://github.com/floci-io/floci-gcp) | GCP   | 4588 | Planned                                                                        |
 | [floci-oci](https://github.com/floci-io/floci-oci) | OCI   | 4599 | Planned                                                                        |
 
@@ -148,6 +149,25 @@ const buckets = await client.send(new ListBucketsCommand({}));
 
 console.log(buckets.Buckets);
 
+await floci.stop();
+```
+
+### Azure
+
+`FlociAzContainer` starts the [Floci Azure](https://github.com/floci-io/floci-az) emulator (`floci/floci-az`, port
+4577). It ships in the same package and shares the container behaviour described above: Docker socket detection,
+`withDedicatedNetwork()`, `withLogLevel()`, the unique resource namespace, sibling cleanup on `stop()` and `reset()`.
+
+```ts
+import { BlobServiceClient } from '@azure/storage-blob';
+import { FlociAzContainer } from '@floci/testcontainers';
+
+const floci = await new FlociAzContainer().start();
+
+const blobs = BlobServiceClient.fromConnectionString(floci.getStorageConnectionString());
+await blobs.getContainerClient('my-container').create();
+
+await floci.reset(); // wipe all state, keep the container
 await floci.stop();
 ```
 
@@ -261,6 +281,10 @@ const floci = await new FlociContainer()
 const endpoint = floci.getSecureEndpoint(); // https://host:port
 await floci.stop();
 ```
+
+With TLS enabled, on any of the emulators, `start()` returns only once the health path answers over HTTPS as well as
+plain HTTP, so the first HTTPS request can be sent at once. The emulators accept connections a moment before their
+HTTPS listener is up; the readiness probe does not validate the certificate.
 
 ### Storage Configuration
 
@@ -389,6 +413,30 @@ await floci.stop();
 | `TextractConfig` | Textract |
 | `TransferFamilyConfig` | Transfer Family |
 
+### Azure
+
+Every Azure service has a config class with an `enabled` switch, and a `mocked` switch where the emulator has one.
+They live under the `az` namespace, because some share a name with an AWS config:
+
+```ts
+import { FlociAzContainer, az } from '@floci/testcontainers';
+
+const floci = await new FlociAzContainer()
+  .withKeyVaultConfig(new az.KeyVaultConfig(false))        // disable a service
+  .withServiceBusConfig(new az.ServiceBusConfig(true, false)) // enabled, not mocked: runs a real broker
+  .withTlsConfig(new az.TlsConfig(true))
+  .start();
+```
+
+Service Bus, Container Instances, Virtual Machines and Container Apps are mocked by default and start sibling
+containers only when their mock is switched off. `az.CosmosConfig` also takes the engine startup mode and the
+container-backed engines to enable, and `az.SqlConfig` the data plane provider; typed settings for the other
+services will follow. Until then, set any emulator setting with `withEnv('FLOCI_AZ_…', value)`. The service list is
+the emulator's: see the [Floci Azure repository](https://github.com/floci-io/floci-az).
+
+The Docker socket is mounted only while an enabled, unmocked service needs sibling containers (for example Event
+Hubs, Functions, Redis or the database services); `withDockerSocket()` and `withoutDockerSocket()` override that.
+
 ## Container options
 
 By default, only the Floci gateway port (4566) is published to the host. Extra service ports are published only when their service configuration is explicitly supplied, or when `withExposedPort(port)` is called. Replacing a service configuration updates its published port range; disabling the service removes that range. This avoids publishing hundreds of unused proxy ports for tests that only use the gateway.
@@ -412,6 +460,19 @@ const floci = await new FlociContainer('floci/floci:x.y.z')  // pin a specific t
 | `getSecretKey()` | Secret key (`"test"` by default) |
 | `getAccountId()` | AWS account ID |
 | `getMappedPort(port)` | Host port mapped from the given container port |
+
+### Azure
+
+| Method | Returns |
+|---|---|
+| `getEndpoint()` | `http://host:port` of the emulator |
+| `getHttpsEndpoint()` | `https://host:port`, served on the same port once TLS is enabled |
+| `getTlsCertificate()` | Promise of the PEM certificate to trust for the HTTPS endpoint (TLS must be enabled) |
+| `getStorageConnectionString()` | Connection string for the Azure Storage SDKs (Blob, Queue, Table) |
+| `getBlobEndpoint()` / `getQueueEndpoint()` / `getTableEndpoint()` | Per-service storage endpoints |
+| `getAccountName()` / `getAccountKey()` | Storage account `devstoreaccount1` and its well-known development key |
+| `getSubscriptionId()` | The emulator's fixed subscription id |
+| `getTenantId()` | The default Microsoft Entra tenant id |
 
 ### Troubleshooting
 
@@ -465,7 +526,8 @@ new FlociContainer('floci/floci:nightly'); // built from main every night
 | `floci/floci:x.y.z`   | Pinned release (native)             |
 | `floci/floci:nightly` | Built from `main` every night       |
 
-Every emulator publishes `latest`, `x.y.z` and `nightly` tags.
+Every emulator publishes `latest`, `x.y.z` and `nightly` tags. `FlociAzContainer` defaults to `floci/floci-az:latest`
+and takes an image name the same way.
 
 ## Requirements
 

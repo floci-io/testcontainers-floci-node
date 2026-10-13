@@ -13,3 +13,6 @@ function pinnedImage(prefix: string): string {
 
 /** The pinned floci/floci tag every integration test runs against. */
 export const TEST_IMAGE = pinnedImage('floci/floci:');
+
+/** The pinned floci/floci-az tag the Azure integration tests run against. */
+export const AZ_TEST_IMAGE = pinnedImage('floci/floci-az:');

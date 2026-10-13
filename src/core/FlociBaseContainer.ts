@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { GenericContainer, Network, Wait, getContainerRuntimeClient } from 'testcontainers';
-import type { ExecResult, StartedNetwork, StartedTestContainer } from 'testcontainers';
+import type { ExecResult, StartedNetwork, StartedTestContainer, WaitStrategy } from 'testcontainers';
 import {
   CloudDescriptor,
   NAMESPACE_LABEL,
@@ -9,6 +9,7 @@ import {
   resourceNamespaceEnv,
   serviceEnabled,
   serviceEnv,
+  tlsEnabled,
 } from './CloudDescriptor';
 
 export const DOCKER_SOCKET = '/var/run/docker.sock';
@@ -34,6 +35,13 @@ export interface BindMount {
   source: string;
   target: string;
   mode: 'rw' | 'ro';
+}
+
+/** The env vars a config writes, without touching a container. */
+function envOf(cfg: ServiceConfig): Record<string, string> {
+  const env: Record<string, string> = {};
+  cfg.applyEnvVarsTo({ withEnv: (key, value) => (env[key] = value), withExposedPort: () => undefined });
+  return env;
 }
 
 /**
@@ -164,6 +172,31 @@ export abstract class FlociBaseContainer {
     }
   }
 
+  /**
+   * Apply `next` in place of `previous`, the config that last wrote these settings. A key only
+   * `previous` wrote is dropped, so a setting never outlives its config, and falls back to the
+   * descriptor's default when it has one (e.g. the TLS https-port every container needs). A key
+   * the caller has since changed with `withEnv` is left alone.
+   */
+  protected replaceConfigEnv(previous: ServiceConfig | undefined, next: ServiceConfig): void {
+    const before = previous ? envOf(previous) : {};
+    const after = envOf(next);
+    const defaults = this.descriptor.defaultEnv ?? {};
+    for (const [key, value] of Object.entries(before)) {
+      if (key in after || this.envVars[key] !== value) {
+        continue;
+      }
+      if (key in defaults) {
+        this.envVars[key] = defaults[key];
+      } else {
+        delete this.envVars[key];
+      }
+    }
+    for (const [key, value] of Object.entries(after)) {
+      this.withEnv(key, value);
+    }
+  }
+
   /** Extra bind mounts a cloud needs besides the Docker socket (e.g. persistent storage). */
   protected extraBindMounts(): BindMount[] {
     return [];
@@ -195,7 +228,25 @@ export abstract class FlociBaseContainer {
     return env;
   }
 
-  /** Start the emulator and wait until its health path answers 200. */
+  /**
+   * What "ready" means for a container started with `env`: the health path answers 200 over plain
+   * HTTP and, when TLS is enabled, over HTTPS on the same port too. The emulators accept
+   * connections on the shared port a few hundred milliseconds before their HTTPS backend
+   * listens, so a TLS handshake right after the plain-HTTP health check would be reset. The
+   * HTTPS probe does not validate the certificate.
+   */
+  protected readinessWait(env: Readonly<Record<string, string>>): WaitStrategy {
+    const health = () => Wait.forHttp(this.descriptor.healthPath, this.descriptor.port).forStatusCode(200);
+    const wait = tlsEnabled(this.descriptor, env)
+      ? Wait.forAll([health(), health().usingTls().allowInsecure()])
+      : health();
+    return wait.withStartupTimeout(FlociBaseContainer.STARTUP_TIMEOUT_MS);
+  }
+
+  /**
+   * Start the emulator and wait until its health path answers 200, over HTTPS as well when TLS
+   * is enabled.
+   */
   protected async startContainer(): Promise<{ container: StartedTestContainer; network?: StartedNetwork }> {
     let network: StartedNetwork | undefined;
     if (this.dedicatedNetworkName) {
@@ -210,15 +261,12 @@ export abstract class FlociBaseContainer {
     }
     bindMounts.push(...this.extraBindMounts());
 
+    const env = await this.environmentAtStart();
     let container = new GenericContainer(this.image)
       .withExposedPorts(...Array.from(this.exposedPorts))
-      .withEnvironment(await this.environmentAtStart())
+      .withEnvironment(env)
       .withBindMounts(bindMounts)
-      .withWaitStrategy(
-        Wait.forHttp(this.descriptor.healthPath, this.descriptor.port)
-          .forStatusCode(200)
-          .withStartupTimeout(FlociBaseContainer.STARTUP_TIMEOUT_MS),
-      );
+      .withWaitStrategy(this.readinessWait(env));
     if (network) {
       container = container.withNetwork(network);
     }
