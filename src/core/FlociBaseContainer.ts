@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { GenericContainer, Network, Wait, getContainerRuntimeClient } from 'testcontainers';
-import type { ExecResult, StartedNetwork, StartedTestContainer } from 'testcontainers';
+import type { ExecResult, StartedNetwork, StartedTestContainer, WaitStrategy } from 'testcontainers';
 import {
   CloudDescriptor,
   NAMESPACE_LABEL,
@@ -9,6 +9,7 @@ import {
   resourceNamespaceEnv,
   serviceEnabled,
   serviceEnv,
+  tlsEnabled,
 } from './CloudDescriptor';
 
 export const DOCKER_SOCKET = '/var/run/docker.sock';
@@ -195,7 +196,25 @@ export abstract class FlociBaseContainer {
     return env;
   }
 
-  /** Start the emulator and wait until its health path answers 200. */
+  /**
+   * What "ready" means for a container started with `env`: the health path answers 200 over plain
+   * HTTP and, when TLS is enabled, over HTTPS on the same port too. The emulators accept
+   * connections on the shared port a few hundred milliseconds before their HTTPS backend
+   * listens, so a TLS handshake right after the plain-HTTP health check would be reset. The
+   * HTTPS probe does not validate the certificate.
+   */
+  protected readinessWait(env: Readonly<Record<string, string>>): WaitStrategy {
+    const health = () => Wait.forHttp(this.descriptor.healthPath, this.descriptor.port).forStatusCode(200);
+    const wait = tlsEnabled(this.descriptor, env)
+      ? Wait.forAll([health(), health().usingTls().allowInsecure()])
+      : health();
+    return wait.withStartupTimeout(FlociBaseContainer.STARTUP_TIMEOUT_MS);
+  }
+
+  /**
+   * Start the emulator and wait until its health path answers 200, over HTTPS as well when TLS
+   * is enabled.
+   */
   protected async startContainer(): Promise<{ container: StartedTestContainer; network?: StartedNetwork }> {
     let network: StartedNetwork | undefined;
     if (this.dedicatedNetworkName) {
@@ -210,15 +229,12 @@ export abstract class FlociBaseContainer {
     }
     bindMounts.push(...this.extraBindMounts());
 
+    const env = await this.environmentAtStart();
     let container = new GenericContainer(this.image)
       .withExposedPorts(...Array.from(this.exposedPorts))
-      .withEnvironment(await this.environmentAtStart())
+      .withEnvironment(env)
       .withBindMounts(bindMounts)
-      .withWaitStrategy(
-        Wait.forHttp(this.descriptor.healthPath, this.descriptor.port)
-          .forStatusCode(200)
-          .withStartupTimeout(FlociBaseContainer.STARTUP_TIMEOUT_MS),
-      );
+      .withWaitStrategy(this.readinessWait(env));
     if (network) {
       container = container.withNetwork(network);
     }

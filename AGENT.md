@@ -57,6 +57,10 @@ The module follows a simple layered design:
 | `src/aws/FlociContainer.ts` | The `AWS` descriptor, `FlociContainer` and `StartedFlociContainer` built on the core |
 | `src/aws/config/services.ts` | All AWS service config classes |
 | `src/aws/config/index.ts` | AWS config barrel exports |
+| `src/az/FlociAzContainer.ts` | The `AZ` descriptor, `FlociAzContainer` and `StartedFlociAzContainer` (Azure, `floci/floci-az`) |
+| `src/az/config/services.ts` | All Azure service config classes (`enabled`, plus `mocked` where the emulator has it) |
+| `src/az/config/TlsConfig.ts` | Azure TLS config (`httpsPort` defaults to `0`) |
+| `src/az/index.ts` | Azure barrel; `src/index.ts` exports the two container classes and `AZ` by name and everything as the `az` namespace |
 | `src/index.ts` | Public API barrel exports |
 | `src/FlociContainer.ts`, `src/config/*` | Aliases of the `src/aws/` files for old deep imports; keep them re-exporting, never put code there |
 
@@ -72,6 +76,31 @@ interface ServiceConfig {
 ```
 
 Config classes translate typed parameters into `FLOCI_*` environment variables.
+
+### Readiness
+
+`FlociBaseContainer.readinessWait()` waits for the descriptor's health path over plain HTTP and, when
+`<envPrefix>TLS_ENABLED` is `true` in the final environment (`tlsEnabled()`), over HTTPS on the same port too, with
+the certificate unchecked. All the emulators accept connections on the shared port a few hundred milliseconds before
+the HTTPS backend listens, so without the second probe the first TLS handshake after `start()` can be reset. It is
+decided from the env, not from a `TlsConfig`, so it covers every cloud and raw `withEnv` settings.
+
+### Azure (`src/az`)
+
+- Still one npm package: Azure is exported from `src/index.ts`. Config classes are reached as `az.BlobConfig`
+  because names such as `TlsConfig` and `AppConfigConfig` also exist for AWS.
+- The mock switch is `FLOCI_AZ_SERVICES_<SERVICE>_MOCKED` (AWS uses `_MOCK`); the descriptor's `mockSetting` says so.
+- Azure configs follow the family rule: `_ENABLED` always, every other key only while enabled. Each extends
+  `AzServiceConfig` (or `AzMockableServiceConfig`) and overrides `requiresDockerSocket()` like the Java config.
+- The socket table in the `AZ` descriptor must agree with the configs; `tests/unit/az.test.ts` checks it.
+  `mockedByDefault` marks services the emulator mocks unless told otherwise; `spawnsContainers` holds a
+  mode-dependent rule (Cosmos engines, SQL data plane provider).
+- Deliberate divergences from Java's `testcontainers-floci-az`: `TlsConfig.httpsPort` defaults to `0` (the family
+  spec, section 3.5; Java still has 443), there is a `PolicyConfig` (the emulator has the service, Java does not yet),
+  and there is no `AuthConfig` yet.
+- The service list comes from `ServicesConfig` in `floci-az`'s `EmulatorConfig.java`. Adding a service: a class in
+  `src/az/config/services.ts`, the barrel, a default plus `with…Config`/`get…Config` in `FlociAzContainer`, the
+  `SERVICES` table in the unit test, and the socket table if it spawns containers.
 
 ---
 

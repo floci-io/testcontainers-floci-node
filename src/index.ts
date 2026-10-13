@@ -60,7 +60,7 @@ export {
 } from './aws/config';
 
 // Shared core: the base every cloud module builds on.
-export type { BindMount, CloudDescriptor, SocketService } from './core';
+export type { BindMount, CloudDescriptor, HostSetting, ServiceSettingReader, SocketService } from './core';
 export {
   DOCKER_SOCKET,
   FlociBaseContainer,
@@ -69,4 +69,11 @@ export {
   networkEnv,
   resourceNamespaceEnv,
   serviceEnv,
+  tlsEnabled,
+  tlsEnabledEnv,
 } from './core';
+
+// Azure (floci/floci-az). The container classes are exported by name; the Azure service configs
+// live under the `az` namespace because some share a name with an AWS config (e.g. `TlsConfig`).
+export { AZ, FlociAzContainer, StartedFlociAzContainer } from './az';
+export * as az from './az';
