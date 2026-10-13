@@ -1,6 +1,6 @@
 import type { StartedNetwork, StartedTestContainer } from 'testcontainers';
 import { FlociBaseContainer, StartedFlociBaseContainer } from '../core';
-import type { CloudDescriptor, FlociContainerTarget, ServiceSettingReader } from '../core';
+import type { CloudDescriptor, ServiceSettingReader } from '../core';
 import {
   AzServiceConfig,
   AciConfig,
@@ -95,13 +95,6 @@ export const AZ: CloudDescriptor = {
   },
 };
 
-/** The env vars a config writes, without touching a container. */
-function envOf(cfg: { applyEnvVarsTo(c: FlociContainerTarget): void }): Record<string, string> {
-  const env: Record<string, string> = {};
-  cfg.applyEnvVarsTo({ withEnv: (key, value) => (env[key] = value), withExposedPort: () => undefined });
-  return env;
-}
-
 /**
  * Testcontainers module for Floci Azure — a free, open-source local Azure emulator.
  *
@@ -171,7 +164,7 @@ export class FlociAzContainer extends FlociBaseContainer {
   }
 
   withTlsConfig(config: TlsConfig): this {
-    this.replaceEnv(envOf(this.tlsConfig), envOf(config));
+    this.replaceConfigEnv(this.tlsConfig, config);
     this.tlsConfig = config;
     return this;
   }
@@ -308,8 +301,7 @@ export class FlociAzContainer extends FlociBaseContainer {
   }
 
   private setServiceConfig(next: AzServiceConfig): this {
-    const previous = this.serviceConfigs.get(next.token);
-    this.replaceEnv(previous ? envOf(previous) : {}, envOf(next));
+    this.replaceConfigEnv(this.serviceConfigs.get(next.token), next);
     this.serviceConfigs.set(next.token, next);
     return this;
   }
@@ -321,21 +313,6 @@ export class FlociAzContainer extends FlociBaseContainer {
       }
     }
     throw new Error(`no ${type.name} registered`);
-  }
-
-  /**
-   * Apply a config in place of an earlier one: a key only the earlier one wrote is dropped, unless
-   * the caller has since changed it with `withEnv`, so a setting never outlives its config.
-   */
-  private replaceEnv(before: Record<string, string>, after: Record<string, string>): void {
-    for (const [key, value] of Object.entries(before)) {
-      if (!(key in after) && this.envVars[key] === value) {
-        delete this.envVars[key];
-      }
-    }
-    for (const [key, value] of Object.entries(after)) {
-      this.withEnv(key, value);
-    }
   }
 }
 

@@ -92,6 +92,9 @@ decided from the env, not from a `TlsConfig`, so it covers every cloud and raw `
 - The mock switch is `FLOCI_AZ_SERVICES_<SERVICE>_MOCKED` (AWS uses `_MOCK`); the descriptor's `mockSetting` says so.
 - Azure configs follow the family rule: `_ENABLED` always, every other key only while enabled. Each extends
   `AzServiceConfig` (or `AzMockableServiceConfig`) and overrides `requiresDockerSocket()` like the Java config.
+- Configs are applied with the core's `replaceConfigEnv(previous, next)`: a key only the previous config wrote is
+  dropped, or reset to the descriptor's `defaultEnv` value when it has one (`FLOCI_AZ_TLS_HTTPS_PORT=0`), and a
+  value the caller changed with `withEnv` is never touched.
 - The socket table in the `AZ` descriptor must agree with the configs; `tests/unit/az.test.ts` checks it.
   `mockedByDefault` marks services the emulator mocks unless told otherwise; `spawnsContainers` holds a
   mode-dependent rule (Cosmos engines, SQL data plane provider).

@@ -37,6 +37,13 @@ export interface BindMount {
   mode: 'rw' | 'ro';
 }
 
+/** The env vars a config writes, without touching a container. */
+function envOf(cfg: ServiceConfig): Record<string, string> {
+  const env: Record<string, string> = {};
+  cfg.applyEnvVarsTo({ withEnv: (key, value) => (env[key] = value), withExposedPort: () => undefined });
+  return env;
+}
+
 /**
  * A Floci emulator container configured by its cloud's {@link CloudDescriptor}.
  *
@@ -162,6 +169,31 @@ export abstract class FlociBaseContainer {
     };
     for (const config of this.configuredPortServices.values()) {
       config.applyExposedPortsTo(target);
+    }
+  }
+
+  /**
+   * Apply `next` in place of `previous`, the config that last wrote these settings. A key only
+   * `previous` wrote is dropped, so a setting never outlives its config, and falls back to the
+   * descriptor's default when it has one (e.g. the TLS https-port every container needs). A key
+   * the caller has since changed with `withEnv` is left alone.
+   */
+  protected replaceConfigEnv(previous: ServiceConfig | undefined, next: ServiceConfig): void {
+    const before = previous ? envOf(previous) : {};
+    const after = envOf(next);
+    const defaults = this.descriptor.defaultEnv ?? {};
+    for (const [key, value] of Object.entries(before)) {
+      if (key in after || this.envVars[key] !== value) {
+        continue;
+      }
+      if (key in defaults) {
+        this.envVars[key] = defaults[key];
+      } else {
+        delete this.envVars[key];
+      }
+    }
+    for (const [key, value] of Object.entries(after)) {
+      this.withEnv(key, value);
     }
   }
 

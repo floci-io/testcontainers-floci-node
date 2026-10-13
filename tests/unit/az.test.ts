@@ -198,6 +198,32 @@ describe('Azure service configs', () => {
     expect(env(c).FLOCI_AZ_SERVICES_SERVICE_BUS_MOCKED).toBeUndefined();
   });
 
+  it('falls back to the descriptor default when a config that wrote the key is replaced', () => {
+    const c = new FlociAzContainer().withTlsConfig(new az.TlsConfig(true)).withTlsConfig(new az.TlsConfig(false));
+    expect(env(c).FLOCI_AZ_TLS_HTTPS_PORT).toBe('0');
+    // TLS switched on with raw env later must not start on the emulator's 443 default.
+    expect(env(c.withEnv('FLOCI_AZ_TLS_ENABLED', 'true')).FLOCI_AZ_TLS_HTTPS_PORT).toBe('0');
+
+    const custom = new FlociAzContainer()
+      .withTlsConfig(new az.TlsConfig(true, true, undefined, undefined, 8443))
+      .withTlsConfig(new az.TlsConfig(false));
+    expect(env(custom).FLOCI_AZ_TLS_HTTPS_PORT).toBe('0');
+  });
+
+  it('keeps a caller override of a defaulted key when its config is replaced', () => {
+    const c = new FlociAzContainer()
+      .withTlsConfig(new az.TlsConfig(true))
+      .withEnv('FLOCI_AZ_TLS_HTTPS_PORT', '8443')
+      .withTlsConfig(new az.TlsConfig(false));
+    expect(env(c).FLOCI_AZ_TLS_HTTPS_PORT).toBe('8443');
+  });
+
+  it('still removes a config-only key, which has no descriptor default', () => {
+    const c = new FlociAzContainer().withTlsConfig(new az.TlsConfig(true)).withTlsConfig(new az.TlsConfig(false));
+    expect(env(c).FLOCI_AZ_TLS_SELF_SIGNED).toBeUndefined();
+    expect(env(c).FLOCI_AZ_TLS_ENABLED).toBe('false');
+  });
+
   it('keeps a setting the caller set with withEnv after the config', () => {
     const c = new FlociAzContainer()
       .withSqlConfig(new az.SqlConfig(true, 'managed'))
