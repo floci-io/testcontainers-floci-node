@@ -1,4 +1,4 @@
-import { PubSub } from '@google-cloud/pubsub';
+import { PubSub, type Subscription } from '@google-cloud/pubsub';
 import { Storage } from '@google-cloud/storage';
 import { FlociGcpContainer, StartedFlociGcpContainer } from '../../src';
 import { GCP_TEST_IMAGE } from './images';
@@ -47,22 +47,28 @@ describe('Floci GCP (integration)', () => {
 
   it('round-trips a message with the Pub/Sub SDK', async () => {
     const pubsub = new PubSub({ projectId: floci.getProjectId() });
+    let subscription: Subscription | undefined;
+    let timer: NodeJS.Timeout | undefined;
     try {
       const [topic] = await pubsub.createTopic('tc-topic');
-      const [subscription] = await topic.createSubscription('tc-subscription');
+      [subscription] = await topic.createSubscription('tc-subscription');
 
+      const opened = subscription;
+      // Reject well inside Jest's timeout, so a lost message still reaches the cleanup below.
       const received = new Promise<string>((resolve, reject) => {
-        subscription.on('message', (message) => {
+        timer = setTimeout(() => reject(new Error('no Pub/Sub message within 30s')), 30_000);
+        opened.on('message', (message) => {
           message.ack();
           resolve(message.data.toString());
         });
-        subscription.on('error', reject);
+        opened.on('error', reject);
       });
       await topic.publishMessage({ data: Buffer.from('hello floci') });
 
       expect(await received).toBe('hello floci');
-      await subscription.close();
     } finally {
+      clearTimeout(timer);
+      await subscription?.close();
       await pubsub.close();
     }
   });
