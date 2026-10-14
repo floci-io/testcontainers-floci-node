@@ -61,6 +61,8 @@ The module follows a simple layered design:
 | `src/az/config/services.ts` | All Azure service config classes (`enabled`, plus `mocked` where the emulator has it) |
 | `src/az/config/TlsConfig.ts` | Azure TLS config (`httpsPort` defaults to `0`) |
 | `src/az/index.ts` | Azure barrel; `src/index.ts` exports the two container classes and `AZ` by name and everything as the `az` namespace |
+| `src/gcp/FlociGcpContainer.ts` | The `GCP` descriptor, `FlociGcpContainer` and `StartedFlociGcpContainer` (GCP, `floci/floci-gcp`) |
+| `src/gcp/config/services.ts`, `TlsConfig.ts`, `src/gcp/index.ts` | GCP service configs (`enabled`, plus `mock` where the emulator has it), TLS config and barrel; exported like Azure, as the `gcp` namespace |
 | `src/index.ts` | Public API barrel exports |
 | `src/FlociContainer.ts`, `src/config/*` | Aliases of the `src/aws/` files for old deep imports; keep them re-exporting, never put code there |
 
@@ -104,6 +106,21 @@ decided from the env, not from a `TlsConfig`, so it covers every cloud and raw `
 - The service list comes from `ServicesConfig` in `floci-az`'s `EmulatorConfig.java`. Adding a service: a class in
   `src/az/config/services.ts`, the barrel, a default plus `with…Config`/`get…Config` in `FlociAzContainer`, the
   `SERVICES` table in the unit test, and the socket table if it spawns containers.
+
+### GCP (`src/gcp`)
+
+- Same shape and scope as Azure. There is no Java module to port from yet, so the emulator is the source of truth:
+  `ServicesConfig` in `floci-gcp`'s `EmulatorConfig.java` for the service list and its docs for the SDK variables.
+  The pinned release is the reference, not the emulator repo's working branch.
+- Service tokens have no underscores (`SECRETMANAGER`, `CLOUDSQL`); the mock switch is `_MOCK`, as on AWS.
+- Socket services: GKE, Kafka, Cloud SQL, Cloud Run and BigQuery (not when `BIGQUERY_DUCK_URL` points at a running
+  sidecar). Cloud Functions is control plane only and needs no socket.
+- `FLOCI_GCP_SERVICES_GKE_ENDPOINT_MODE` is left at the emulator's default, `host`, which advertises
+  `localhost:<published port>`; `network` advertises the sibling's container name, which the test host cannot resolve.
+- `getEmulatorEnv()` values are `host:port`, except `STORAGE_EMULATOR_HOST`, which the SDKs want as a URL.
+  `LOGGING_EMULATOR_HOST` and `KMS_EMULATOR_HOST` are read by no client library; they are kept for parity with the
+  other languages and the emulator's compatibility tests.
+- The integration test uses the Google SDKs (dev dependencies) through `getEmulatorEnv()`.
 
 ---
 

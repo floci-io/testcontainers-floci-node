@@ -16,3 +16,6 @@ export const TEST_IMAGE = pinnedImage('floci/floci:');
 
 /** The pinned floci/floci-az tag the Azure integration tests run against. */
 export const AZ_TEST_IMAGE = pinnedImage('floci/floci-az:');
+
+/** The pinned floci/floci-gcp tag the GCP integration tests run against. */
+export const GCP_TEST_IMAGE = pinnedImage('floci/floci-gcp:');
