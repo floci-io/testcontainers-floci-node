@@ -63,6 +63,8 @@ The module follows a simple layered design:
 | `src/az/index.ts` | Azure barrel; `src/index.ts` exports the two container classes and `AZ` by name and everything as the `az` namespace |
 | `src/gcp/FlociGcpContainer.ts` | The `GCP` descriptor, `FlociGcpContainer` and `StartedFlociGcpContainer` (GCP, `floci/floci-gcp`) |
 | `src/gcp/config/services.ts`, `TlsConfig.ts`, `src/gcp/index.ts` | GCP service configs (`enabled`, plus `mock` where the emulator has it), TLS config and barrel; exported like Azure, as the `gcp` namespace |
+| `src/oci/FlociOciContainer.ts` | The `OCI` descriptor, `FlociOciContainer` and `StartedFlociOciContainer` (OCI, `floci/floci-oci`) |
+| `src/oci/config/services.ts`, `TlsConfig.ts`, `src/oci/index.ts` | OCI service configs, TLS config and barrel; exported as the `oci` namespace |
 | `src/index.ts` | Public API barrel exports |
 | `src/FlociContainer.ts`, `src/config/*` | Aliases of the `src/aws/` files for old deep imports; keep them re-exporting, never put code there |
 
@@ -121,6 +123,27 @@ decided from the env, not from a `TlsConfig`, so it covers every cloud and raw `
   `LOGGING_EMULATOR_HOST` and `KMS_EMULATOR_HOST` are read by no client library; they are kept for parity with the
   other languages and the emulator's compatibility tests.
 - The integration test uses the Google SDKs (dev dependencies) through `getEmulatorEnv()`.
+
+### OCI (`src/oci`)
+
+- Same shape and scope as Azure and GCP, and like GCP ported from the emulator (`floci-oci`'s `EmulatorConfig.java`
+  and docs at the pinned release), not from a Java module.
+- Socket services: Functions and OKE, both with a `_MOCK` switch.
+- Credentials: `getPrivateKeyPem()` generates a 2048-bit RSA key (PKCS#1 PEM, Node's `crypto`) once per started
+  container, on first use, unless `withPrivateKeyPem()` supplied one. The user OCID and fingerprint are the placeholders from the emulator's docs; the emulator
+  parses the signature's `keyId` for the tenancy and never verifies the signature. Never add a real key or a
+  dependency for this.
+- `getConfigFileContents(keyFile, profile)` returns the text only; the caller writes the files. An OCI config file
+  cannot carry an endpoint.
+- Do not set `FLOCI_OCI_AUTH_REQUIRE_SIGNATURE=true`: in floci-oci 0.4.2 it also answers 401 on `/health`,
+  `/_floci-oci/health` and `/_floci-oci/state/reset` (its exemption compares the path without the leading slash), so
+  the container never becomes ready and `reset()` fails. The integration test proves the signature is well formed
+  through tenancy isolation instead, and records the bug as an `it.failing` test.
+- The emulator has no endpoint that serves its TLS certificate, so there is no `getTlsCertificate()` here. TLS
+  itself works at 0.4.2 (`tests/integration/oci-tls.test.ts`); the certificate is self-signed, at
+  `/app/data/tls/floci-selfsigned.crt` in the container.
+- The integration test uses `oci-common` and `oci-objectstorage` (dev dependencies), through both the config file
+  and the in-memory provider.
 
 ---
 

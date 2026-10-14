@@ -32,7 +32,8 @@ A Node.js / TypeScript [Testcontainers](https://testcontainers.com/) module for 
 the free, open-source local cloud emulators. `FlociContainer` starts a Floci (AWS) container for your integration
 tests and gives you an endpoint and credentials to point the AWS SDK v3 at, plus a typed, per-service configuration
 API over the emulator's environment variables. `FlociAzContainer` does the same for [Azure](#azure) with the
-Floci Azure emulator, and `FlociGcpContainer` for [Google Cloud](#gcp) with the Floci GCP emulator. No cloud account, no auth token, MIT license.
+Floci Azure emulator, `FlociGcpContainer` for [Google Cloud](#gcp) with the Floci GCP emulator and
+`FlociOciContainer` for [Oracle Cloud Infrastructure](#oci) with the Floci OCI emulator. No cloud account, no auth token, MIT license.
 
 See the [Floci documentation](https://floci.io/floci/services/) for the full list of supported AWS services.
 
@@ -47,7 +48,7 @@ like popcorn.
 | [floci](https://github.com/floci-io/floci)         | AWS   | 4566 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
 | [floci-az](https://github.com/floci-io/floci-az)   | Azure | 4577 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
 | [floci-gcp](https://github.com/floci-io/floci-gcp) | GCP   | 4588 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
-| [floci-oci](https://github.com/floci-io/floci-oci) | OCI   | 4599 | Planned                                                                        |
+| [floci-oci](https://github.com/floci-io/floci-oci) | OCI   | 4599 | ✅ [`@floci/testcontainers`](https://www.npmjs.com/package/@floci/testcontainers) |
 
 ## Installation
 
@@ -199,6 +200,47 @@ Services without such a variable (BigQuery, Cloud Tasks, Cloud Run and others) t
 client's API endpoint. So do Cloud Logging and Cloud KMS: no client library reads `LOGGING_EMULATOR_HOST` or
 `KMS_EMULATOR_HOST`, which are there for code that builds those clients from them. The emulator accepts any project id; `withProjectId('my-project')` changes the default one,
 `floci-local`.
+
+### OCI
+
+`FlociOciContainer` starts the [Floci OCI](https://github.com/floci-io/floci-oci) emulator (`floci/floci-oci`, port
+4599), with the same shared container behaviour. The OCI SDKs sign every request, so the started container hands out
+credentials they accept: a throwaway RSA key generated for the container, with the tenancy, user and fingerprint to
+go with it. The emulator reads the tenancy from the signature and never verifies it.
+
+```ts
+import * as common from 'oci-common';
+import { ObjectStorageClient } from 'oci-objectstorage';
+import { FlociOciContainer } from '@floci/testcontainers';
+
+const floci = await new FlociOciContainer().start();
+
+const client = new ObjectStorageClient({
+  authenticationDetailsProvider: new common.SimpleAuthenticationDetailsProvider(
+    floci.getTenancyId(),
+    floci.getUserId(),
+    floci.getFingerprint(),
+    floci.getPrivateKeyPem(),
+    null,
+    common.Region.fromRegionId(floci.getRegion()),
+  ),
+});
+client.endpoint = floci.getEndpoint();
+
+await client.createBucket({
+  namespaceName: floci.getNamespace(),
+  createBucketDetails: { name: 'my-bucket', compartmentId: floci.getTenancyId() },
+});
+
+await floci.reset(); // wipe all state, keep the container
+await floci.stop();
+```
+
+For the OCI CLI, or an SDK set up from a config file, write the key to a file and
+`floci.getConfigFileContents(keyFile, 'FLOCI')` to another: it is a config file with that one profile. The endpoint
+is not part of an OCI config file, so it is still set on each client, or with `--endpoint` on the CLI.
+`withRegion()`, `withTenancyId()` and `withNamespace()` change the emulator's defaults, and `withPrivateKeyPem()`
+supplies your own key in place of the generated one.
 
 ## Service configuration
 
@@ -487,6 +529,26 @@ Docker socket is mounted while any of them is enabled and unmocked; mock or disa
 Until then, set any emulator setting with `withEnv('FLOCI_GCP_…', value)`. The service list is the emulator's: see the
 [Floci GCP repository](https://github.com/floci-io/floci-gcp).
 
+### OCI
+
+Every OCI service has a config class with an `enabled` switch, and a `mock` switch where the emulator has one. They
+live under the `oci` namespace:
+
+```ts
+import { FlociOciContainer, oci } from '@floci/testcontainers';
+
+const floci = await new FlociOciContainer()
+  .withStreamingConfig(new oci.StreamingConfig(false))     // disable a service
+  .withFunctionsConfig(new oci.FunctionsConfig(true, true)) // enabled, mocked: no Fn server container
+  .withOkeConfig(new oci.OkeConfig(true, true))
+  .start();
+```
+
+Functions and Kubernetes Engine (OKE) run in sibling containers unless mocked, so the Docker socket is mounted while
+either is enabled and unmocked. `oci.TlsConfig` enables TLS. Set any other emulator setting with
+`withEnv('FLOCI_OCI_…', value)`. The service list is the emulator's: see the
+[Floci OCI repository](https://github.com/floci-io/floci-oci).
+
 ## Container options
 
 By default, only the Floci gateway port (4566) is published to the host. Extra service ports are published only when their service configuration is explicitly supplied, or when `withExposedPort(port)` is called. Replacing a service configuration updates its published port range; disabling the service removes that range. This avoids publishing hundreds of unused proxy ports for tests that only use the gateway.
@@ -533,6 +595,19 @@ const floci = await new FlociContainer('floci/floci:x.y.z')  // pin a specific t
 | `getEmulatorEnv()` | The variables Google SDKs read, as an object: `PUBSUB_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`, `DATASTORE_EMULATOR_HOST`, `SECRET_MANAGER_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`, `LOGGING_EMULATOR_HOST`, `KMS_EMULATOR_HOST` and `STORAGE_EMULATOR_HOST_GRPC` (`host:port`), `STORAGE_EMULATOR_HOST` (`http://host:port`) and `GOOGLE_CLOUD_PROJECT` |
 | `getHttpsEndpoint()` | `https://host:port`, served on the same port once TLS is enabled |
 | `getTlsCertificate()` | Promise of the PEM certificate to trust for the HTTPS endpoint (TLS must be enabled) |
+
+### OCI
+
+| Method | Returns |
+|---|---|
+| `getEndpoint()` | `http://host:port` of the emulator; set it as the endpoint of each OCI client |
+| `getRegion()` | Region, `us-ashburn-1` unless set with `withRegion()` |
+| `getTenancyId()` | Tenancy OCID, which is also the root compartment |
+| `getNamespace()` | Object Storage namespace, `floci-local` unless set with `withNamespace()` |
+| `getUserId()` / `getFingerprint()` | A user OCID and key fingerprint to sign with; the emulator accepts any |
+| `getPrivateKeyPem()` | A throwaway RSA private key in PEM, generated once per container unless set with `withPrivateKeyPem()` |
+| `getConfigFileContents(keyFile, profile?)` | Text of an OCI config file with one profile (`DEFAULT` unless named) whose `key_file` is `keyFile` |
+| `getHttpsEndpoint()` | `https://host:port`, served on the same port once TLS is enabled |
 
 ### Troubleshooting
 
@@ -587,7 +662,8 @@ new FlociContainer('floci/floci:nightly'); // built from main every night
 | `floci/floci:nightly` | Built from `main` every night       |
 
 Every emulator publishes `latest`, `x.y.z` and `nightly` tags. `FlociAzContainer` defaults to `floci/floci-az:latest`
-and `FlociGcpContainer` to `floci/floci-gcp:latest`; both take an image name the same way.
+`FlociGcpContainer` to `floci/floci-gcp:latest` and `FlociOciContainer` to `floci/floci-oci:latest`; each takes an
+image name the same way.
 
 ## Requirements
 
