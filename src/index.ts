@@ -81,3 +81,7 @@ export * as az from './az';
 // GCP (floci/floci-gcp). Same shape as Azure: container classes by name, service configs under `gcp`.
 export { GCP, FlociGcpContainer, StartedFlociGcpContainer } from './gcp';
 export * as gcp from './gcp';
+
+// OCI (floci/floci-oci). Same shape again: container classes by name, service configs under `oci`.
+export { OCI, FlociOciContainer, StartedFlociOciContainer } from './oci';
+export * as oci from './oci';

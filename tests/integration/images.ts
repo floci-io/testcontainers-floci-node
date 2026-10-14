@@ -19,3 +19,6 @@ export const AZ_TEST_IMAGE = pinnedImage('floci/floci-az:');
 
 /** The pinned floci/floci-gcp tag the GCP integration tests run against. */
 export const GCP_TEST_IMAGE = pinnedImage('floci/floci-gcp:');
+
+/** The pinned floci/floci-oci tag the OCI integration tests run against. */
+export const OCI_TEST_IMAGE = pinnedImage('floci/floci-oci:');
