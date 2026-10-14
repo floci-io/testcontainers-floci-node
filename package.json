@@ -55,13 +55,13 @@
     "@azure/storage-queue": "~12.26.0",
     "@google-cloud/pubsub": "^4.11.0",
     "@google-cloud/storage": "^7.22.0",
-    "@types/jest": "^29.0.0",
-    "@types/node": "^20.0.0",
-    "jest": "^29.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.5",
+    "jest": "^30.5.2",
     "oci-common": "^2.142.2",
     "oci-objectstorage": "^2.142.2",
     "ts-jest": "^29.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=18"
