@@ -51,7 +51,7 @@
     "@aws-sdk/client-sns": "^3.0.0",
     "@aws-sdk/client-sqs": "^3.0.0",
     "@aws-sdk/client-ssm": "^3.0.0",
-    "@azure/storage-blob": "~12.27.0",
+    "@azure/storage-blob": "~12.34.0",
     "@azure/storage-queue": "~12.26.0",
     "@google-cloud/pubsub": "^4.11.0",
     "@google-cloud/storage": "^7.22.0",
