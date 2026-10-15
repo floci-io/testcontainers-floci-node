@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0](https://github.com/floci-io/testcontainers-floci-node/compare/v0.3.0...v0.4.0) (2026-10-15)
+
+
+### Features
+
+* **az:** add FlociAzContainer for the Floci Azure emulator ([#33](https://github.com/floci-io/testcontainers-floci-node/issues/33)) ([ed016cf](https://github.com/floci-io/testcontainers-floci-node/commit/ed016cf0eb506ef971379e3ba7b71481bf952f9e))
+* **gcp:** add FlociGcpContainer for the Floci GCP emulator ([#35](https://github.com/floci-io/testcontainers-floci-node/issues/35)) ([613a399](https://github.com/floci-io/testcontainers-floci-node/commit/613a399d1ce480bab6bffec081075ab8922f35ac))
+* **oci:** add FlociOciContainer for the Floci OCI emulator ([#36](https://github.com/floci-io/testcontainers-floci-node/issues/36)) ([259042b](https://github.com/floci-io/testcontainers-floci-node/commit/259042b7eb7b5a193b2975554da47ecdf808b100))
+
 ## [0.3.0](https://github.com/floci-io/testcontainers-floci-node/compare/0.2.0...v0.3.0) (2026-10-10)
 
 
