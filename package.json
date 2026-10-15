@@ -1,11 +1,14 @@
 {
   "name": "@floci/testcontainers",
   "version": "0.3.0",
-  "description": "Testcontainers module for Floci — the open-source local AWS emulator",
+  "description": "Testcontainers module for Floci, the open-source local cloud emulators for AWS, Azure, GCP and OCI",
   "keywords": [
     "testcontainers",
     "floci",
     "aws",
+    "azure",
+    "gcp",
+    "oci",
     "testing"
   ],
   "license": "MIT",
