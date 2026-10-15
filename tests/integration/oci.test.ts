@@ -100,11 +100,15 @@ describe('Floci OCI (integration)', () => {
       createBucketDetails: { name: 'tc-tenancy', compartmentId: floci.getTenancyId() },
     });
 
-    const names = async (c: ObjectStorageClient, compartmentId: string) =>
-      (await c.listBuckets({ namespaceName, compartmentId })).items.map((b) => b.name);
-    expect(await names(mine, floci.getTenancyId())).toContain('tc-tenancy');
-    expect(await names(other, floci.getTenancyId())).toEqual([]);
-    expect(await names(other, 'ocid1.tenancy.oc1..flociothertenancy')).toEqual([]);
+    const names = async (c: ObjectStorageClient, ns: string, compartmentId: string) =>
+      (await c.listBuckets({ namespaceName: ns, compartmentId })).items.map((b) => b.name);
+    expect(await names(mine, namespaceName, floci.getTenancyId())).toContain('tc-tenancy');
+
+    // Each tenancy has its own namespace, and the emulator answers 404 for anyone else's.
+    const otherNamespace = (await other.getNamespace({})).value;
+    expect(otherNamespace).not.toEqual(namespaceName);
+    expect(await names(other, otherNamespace, floci.getTenancyId())).toEqual([]);
+    expect(await names(other, otherNamespace, 'ocid1.tenancy.oc1..flociothertenancy')).toEqual([]);
   });
 
   it('accepts the in-memory credentials, and wipes state on reset()', async () => {
