@@ -30,8 +30,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests"
   },
-  "dependencies": {
-    "testcontainers": "^10.0.0"
+  "peerDependencies": {
+    "testcontainers": "^10.0.0 || ^11.0.0 || ^12.0.0"
   },
   "devDependencies": {
     "@aws-sdk/client-acm": "^3.0.0",
@@ -64,7 +64,8 @@
     "oci-common": "^2.142.2",
     "oci-objectstorage": "^2.142.2",
     "ts-jest": "^29.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "testcontainers": "^10.0.0"
   },
   "engines": {
     "node": ">=18"
