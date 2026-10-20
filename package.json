@@ -31,7 +31,7 @@
     "lint": "eslint src tests"
   },
   "dependencies": {
-    "testcontainers": "^10.0.0"
+    "testcontainers": "^12.2.1"
   },
   "devDependencies": {
     "@aws-sdk/client-acm": "^3.0.0",
