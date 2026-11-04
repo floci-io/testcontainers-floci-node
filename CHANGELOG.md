@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/floci-io/testcontainers-floci-node/compare/v0.4.0...v0.4.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **cloudfront:** let the distribution suffix follow the partition ([#52](https://github.com/floci-io/testcontainers-floci-node/issues/52)) ([0e09303](https://github.com/floci-io/testcontainers-floci-node/commit/0e09303bf30e53e059a720df89d3201f7a3e9367))
+
 ## [0.4.0](https://github.com/floci-io/testcontainers-floci-node/compare/v0.3.0...v0.4.0) (2026-10-15)
 
 
