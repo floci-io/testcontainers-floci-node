@@ -544,8 +544,8 @@ export class FlociContainer extends FlociBaseContainer {
   getStepFunctionsConfig(): StepFunctionsConfig { return this.stepFunctionsConfig; }
 
   withCloudFrontConfig(config: CloudFrontConfig): this {
+    this.replaceConfigEnv(this.cloudFrontConfig, config);
     this.cloudFrontConfig = config;
-    config.applyEnvVarsTo(this);
     return this;
   }
 

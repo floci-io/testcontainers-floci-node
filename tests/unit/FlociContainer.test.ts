@@ -199,6 +199,28 @@ describe('FlociContainer new config methods', () => {
     expect(container.getCloudFrontConfig().domainSuffix).toBe('example.com');
   });
 
+  it('withCloudFrontConfig drops the suffix of the config it replaces', () => {
+    const suffixKey = 'FLOCI_SERVICES_CLOUDFRONT_DOMAIN_SUFFIX';
+    const env = (c: FlociContainer) => (c as unknown as { envVars: Record<string, string> }).envVars;
+
+    const replaced = new FlociContainer()
+      .withCloudFrontConfig(new CloudFrontConfig(true, 'example.com'))
+      .withCloudFrontConfig(new CloudFrontConfig());
+    expect(env(replaced)[suffixKey]).toBeUndefined();
+
+    const disabled = new FlociContainer()
+      .withCloudFrontConfig(new CloudFrontConfig(true, 'example.com'))
+      .withCloudFrontConfig(new CloudFrontConfig(false));
+    expect(env(disabled)[suffixKey]).toBeUndefined();
+    expect(env(disabled)['FLOCI_SERVICES_CLOUDFRONT_ENABLED']).toBe('false');
+
+    const overridden = new FlociContainer()
+      .withCloudFrontConfig(new CloudFrontConfig(true, 'example.com'))
+      .withEnv(suffixKey, 'caller.example.com')
+      .withCloudFrontConfig(new CloudFrontConfig());
+    expect(env(overridden)[suffixKey]).toBe('caller.example.com');
+  });
+
   it('withConfigServiceConfig/getConfigServiceConfig stores config', () => {
     const config = new ConfigServiceConfig(false);
     const container = new FlociContainer().withConfigServiceConfig(config);
