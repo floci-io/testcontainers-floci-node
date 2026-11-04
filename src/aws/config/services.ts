@@ -723,12 +723,12 @@ export class PricingConfig implements ServiceConfig {
 export class CloudFrontConfig implements ServiceConfig {
   constructor(
     readonly enabled: boolean = true,
-    readonly domainSuffix: string = 'cloudfront.net',
+    readonly domainSuffix?: string,
   ) {}
 
   applyEnvVarsTo(c: FlociContainerTarget): void {
     c.withEnv('FLOCI_SERVICES_CLOUDFRONT_ENABLED', String(this.enabled));
-    if (this.enabled) {
+    if (this.enabled && this.domainSuffix) {
       c.withEnv('FLOCI_SERVICES_CLOUDFRONT_DOMAIN_SUFFIX', this.domainSuffix);
     }
   }
