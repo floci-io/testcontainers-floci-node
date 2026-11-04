@@ -17,14 +17,14 @@ class MockContainer implements FlociContainerTarget {
 }
 
 describe('CloudFrontConfig', () => {
-  it('sets default values (enabled=true, domainSuffix="cloudfront.net")', () => {
+  it('sets default values (enabled=true, domainSuffix unset so Floci derives it from the partition)', () => {
     const config = new CloudFrontConfig();
     const mock = new MockContainer();
 
     config.applyEnvVarsTo(mock);
 
     expect(mock.envVars['FLOCI_SERVICES_CLOUDFRONT_ENABLED']).toBe('true');
-    expect(mock.envVars['FLOCI_SERVICES_CLOUDFRONT_DOMAIN_SUFFIX']).toBe('cloudfront.net');
+    expect(mock.envVars['FLOCI_SERVICES_CLOUDFRONT_DOMAIN_SUFFIX']).toBeUndefined();
   });
 
   it('sets non-default values', () => {
