@@ -58,7 +58,7 @@
     "@azure/storage-blob": "~12.34.0",
     "@azure/storage-queue": "~12.26.0",
     "@google-cloud/pubsub": "^6.3.2",
-    "@google-cloud/storage": "^7.22.0",
+    "@google-cloud/storage": "^8.4.0",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
     "jest": "^29.0.0",
